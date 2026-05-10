@@ -12,9 +12,10 @@
   type Props = {
     tasks: Task[];
     onToggle: (task: Task, dateYMD: string) => void;
+    onCreate: (dateYMD: string) => void;
   };
 
-  const { tasks, onToggle }: Props = $props();
+  const { tasks, onToggle, onCreate }: Props = $props();
 
   const now = new Date();
   let year = $state(now.getFullYear());
@@ -83,7 +84,10 @@
         class:has={total > 0}
         class:all-done={total > 0 && doneCount === total}
         type="button"
-        onclick={() => (selectedYMD = k)}
+        onclick={() => {
+          selectedYMD = k;
+          onCreate(k);
+        }}
         aria-label={`${d.getDate()} ${MONTH_LABELS[d.getMonth()]} - ${doneCount}/${total} tasks`}
       >
         <span class="num">{d.getDate()}</span>

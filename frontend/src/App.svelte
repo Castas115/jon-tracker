@@ -146,7 +146,12 @@
   {#if loading}
     <p class="empty">Loading...</p>
   {:else if view === 'month'}
-    <MonthView {tasks} onToggle={toggle} />
+    <MonthView
+      {tasks}
+      onToggle={toggle}
+      onCreate={(dateYMD) =>
+        openCreate({ task_type: 'fixed', fixed_date: dateYMD, start: '', end: '' })}
+    />
   {:else}
     <WeekGrid
       {tasks}
