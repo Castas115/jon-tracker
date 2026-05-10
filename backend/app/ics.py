@@ -22,6 +22,7 @@ from .config import settings
 _CACHE_TTL_SECONDS = 300  # 5 minutes
 _raw_cache: tuple[float, bytes] | None = None
 _cal_cache: tuple[float, Calendar] | None = None
+_events_cache: dict[tuple[date, date], tuple[float, list[dict]]] = {}
 
 
 def is_configured() -> bool:
@@ -101,6 +102,12 @@ def list_events(from_date: date, to_date: date) -> list[dict]:
     if not is_configured():
         return []
 
+    key = (from_date, to_date)
+    now = time.time()
+    cached = _events_cache.get(key)
+    if cached and now - cached[0] < _CACHE_TTL_SECONDS:
+        return cached[1]
+
     cal = _get_calendar()
 
     # recurring-ical-events expands RRULEs into concrete instances within range.
@@ -135,4 +142,6 @@ def list_events(from_date: date, to_date: date) -> list[dict]:
                 "description": str(ev.get("DESCRIPTION")) if ev.get("DESCRIPTION") else None,
             }
         )
+
+    _events_cache[key] = (now, out)
     return out
