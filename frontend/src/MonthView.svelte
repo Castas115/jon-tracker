@@ -123,14 +123,18 @@
         ...dayTasks.map((t) => ({
           kind: t.task_type === 'birthday' ? 'birthday-task' : 'task',
           title: t.title,
+          time: t.start_time ?? '',
+          sortKey: t.start_time ?? '',
           done: isCompleted(t, k)
         })),
         ...dayEvents.map((e) => ({
           kind: e.kind === 'birthday' ? 'birthday-event' : 'event',
           title: e.title,
+          time: fmtTime(e),
+          sortKey: e.all_day ? '' : new Date(e.start).toISOString(),
           done: false
         }))
-      ]}
+      ].sort((a, b) => a.sortKey.localeCompare(b.sortKey))}
       {@const visible = items.slice(0, 3)}
       {@const extra = items.length - visible.length}
       <button
@@ -152,7 +156,7 @@
         <span class="items">
           {#each visible as it}
             <span class="item kind-{it.kind}" class:done={it.done}>
-              {#if it.kind === 'birthday-task' || it.kind === 'birthday-event'}🎂 {/if}{it.title}
+              {#if it.kind === 'birthday-task' || it.kind === 'birthday-event'}🎂 {/if}{#if it.time}<span class="t">{it.time}</span> {/if}{it.title}
             </span>
           {/each}
           {#if extra > 0}
@@ -313,6 +317,12 @@
     color: var(--fg);
   }
   .item.done { opacity: 0.5; text-decoration: line-through; }
+  .item .t {
+    font-variant-numeric: tabular-nums;
+    color: var(--fg-muted);
+    font-weight: 500;
+    margin-right: 5px;
+  }
   .more {
     font-size: 0.65rem;
     color: var(--fg-muted);
