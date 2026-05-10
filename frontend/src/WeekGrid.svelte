@@ -6,7 +6,7 @@
     tasks: Task[];
     onToggle: (task: Task, dateYMD: string) => void;
     onRemove: (task: Task) => void;
-    onCreate: (weekday: number, start: string, end: string) => void;
+    onCreate: (weekday: number, dateYMD: string, start: string, end: string) => void;
   };
 
   const { tasks, onToggle, onRemove, onCreate }: Props = $props();
@@ -78,7 +78,7 @@
     if (hour < HOUR_START) hour = HOUR_START;
     if (hour >= HOUR_END - 1) hour = HOUR_END - 2;
     const pad = (n: number) => String(n).padStart(2, '0');
-    onCreate(weekday, `${pad(hour)}:00`, `${pad(hour + 1)}:00`);
+    onCreate(weekday, dates[weekday], `${pad(hour)}:00`, `${pad(hour + 1)}:00`);
   }
 </script>
 

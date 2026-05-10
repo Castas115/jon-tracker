@@ -152,8 +152,14 @@
       {tasks}
       onToggle={toggle}
       onRemove={remove}
-      onCreate={(weekday, start, end) =>
-        openCreate({ task_type: 'recurring', weekdays: [weekday], start, end })}
+      onCreate={(weekday, dateYMD, start, end) =>
+        openCreate({
+          task_type: 'recurring',
+          weekdays: [weekday],
+          fixed_date: dateYMD,
+          start,
+          end
+        })}
     />
   {/if}
 </main>
