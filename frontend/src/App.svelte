@@ -171,27 +171,27 @@
     }
 
     // Global commands first.
-    if (isPlainKey(e, 'c') || isPlainKey(e, 'n')) {
+    if (isPlainKey(e, 'n')) {
       e.preventDefault();
       openCreate();
       setCount('');
       return;
     }
-    if (isPlainKey(e, 'w')) {
+    if (isPlainKey(e, 'v')) {
+      e.preventDefault();
+      view = 'day';
+      setCount('');
+      return;
+    }
+    if (isPlainKey(e, 'c')) {
       e.preventDefault();
       view = 'week';
       setCount('');
       return;
     }
-    if (isPlainKey(e, 'm')) {
+    if (isPlainKey(e, 'x')) {
       e.preventDefault();
       view = 'month';
-      setCount('');
-      return;
-    }
-    if (isPlainKey(e, 'd')) {
-      e.preventDefault();
-      view = 'day';
       setCount('');
       return;
     }
@@ -288,7 +288,7 @@
           class="primary"
           type="button"
           onclick={() => openCreate()}
-          title="New task (c)"
+          title="New task (n)"
         >
           + New task
         </button>

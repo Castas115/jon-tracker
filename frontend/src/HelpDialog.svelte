@@ -19,10 +19,10 @@
   }
 
   const shortcuts = [
-    { keys: ['c', 'n'], desc: 'New task' },
-    { keys: ['d'], desc: 'Day view' },
-    { keys: ['w'], desc: 'Week view' },
-    { keys: ['m'], desc: 'Month view' },
+    { keys: ['n'], desc: 'New task' },
+    { keys: ['v'], desc: 'Day view' },
+    { keys: ['c'], desc: 'Week view' },
+    { keys: ['x'], desc: 'Month view' },
     { keys: ['t'], desc: 'Toggle theme' },
     { keys: ['h', '←'], desc: 'Previous day / month' },
     { keys: ['l', '→'], desc: 'Next day / month' },
