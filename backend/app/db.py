@@ -63,3 +63,14 @@ def ensure_schema(eng: Engine) -> None:
                 )
         if "fixed_date" not in existing:
             conn.execute(text("ALTER TABLE tasks ADD COLUMN fixed_date DATE"))
+
+        # Legacy single-weekday column. Kept around through a few migrations
+        # but the NOT NULL constraint blocks fixed/birthday inserts. Drop it
+        # if SQLite supports it (3.35+).
+        if "weekday" in existing:
+            try:
+                conn.execute(text("ALTER TABLE tasks DROP COLUMN weekday"))
+            except Exception:
+                # Older SQLite: leave the column. New rows can still satisfy
+                # NOT NULL because the model writes 0 by default (see models.py).
+                pass
