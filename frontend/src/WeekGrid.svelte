@@ -431,7 +431,6 @@
     color: var(--gcal-fg);
     border: 1px solid var(--gcal);
     cursor: default;
-    position: relative;
   }
   .all-day-block.event {
     background: color-mix(in srgb, var(--gcal) 65%, transparent);
