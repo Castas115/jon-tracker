@@ -208,9 +208,12 @@
           <div
             class="all-day-block event"
             class:birthday={ev.kind === 'birthday'}
-            title={ev.kind === 'birthday' ? `🎂 ${ev.title}` : ev.title}
+            title={`${ev.kind === 'birthday' ? '🎂 ' : ''}${ev.title} (Google Calendar)`}
           >
-            {ev.kind === 'birthday' ? '🎂 ' : ''}{ev.title}
+            <span class="ev-text">
+              {ev.kind === 'birthday' ? '🎂 ' : ''}{ev.title}
+            </span>
+            <span class="ev-badge" aria-label="Google">G</span>
           </div>
         {/each}
       </div>
@@ -271,11 +274,12 @@
             class="block event"
             class:birthday={ev.kind === 'birthday'}
             style={eventBlockStyle(ev)}
-            title={ev.kind === 'birthday' ? `🎂 ${ev.title}` : ev.title}
+            title={`${ev.kind === 'birthday' ? '🎂 ' : ''}${ev.title} (Google Calendar)`}
           >
             <span class="b-title">
               {ev.kind === 'birthday' ? '🎂 ' : ''}{ev.title}
             </span>
+            <span class="ev-badge" aria-label="Google">G</span>
           </div>
         {/each}
       </div>
@@ -414,20 +418,49 @@
     text-decoration: line-through;
   }
   .block.event {
-    background: transparent;
-    color: var(--fg);
-    border: 1.5px dashed var(--accent);
+    background: color-mix(in srgb, var(--gcal) 75%, transparent);
+    color: var(--gcal-fg);
+    border: 1px solid var(--gcal);
     cursor: default;
+    position: relative;
   }
   .all-day-block.event {
-    background: transparent;
-    color: var(--fg);
-    border: 1px dashed var(--accent);
+    background: color-mix(in srgb, var(--gcal) 65%, transparent);
+    color: var(--gcal-fg);
+    border: 1px solid var(--gcal);
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-right: 22px;
+  }
+  .ev-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+  .ev-badge {
+    position: absolute;
+    top: 2px;
+    right: 3px;
+    font-size: 0.55rem;
+    font-weight: 700;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.18);
+    color: var(--gcal-fg);
+    letter-spacing: 0.04em;
   }
   .block.birthday,
   .all-day-block.birthday {
-    border-style: solid;
-    border-color: color-mix(in srgb, var(--accent) 70%, #ffb5b5);
+    background: color-mix(in srgb, #c97a8a 30%, transparent);
+    border-color: #c97a8a;
+  }
+  .block.birthday .ev-badge,
+  .all-day-block.birthday .ev-badge {
+    background: rgba(201, 122, 138, 0.4);
   }
   .b-title {
     font-size: 0.75rem;
