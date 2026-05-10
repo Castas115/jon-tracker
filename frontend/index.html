@@ -8,6 +8,21 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Jon Tracker</title>
+    <script>
+      // Inline pre-hydration theme to avoid FOUC.
+      (function () {
+        try {
+          var saved = localStorage.getItem('tracker-theme');
+          var t = saved === 'light' || saved === 'dark'
+            ? saved
+            : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+          document.documentElement.dataset.theme = t;
+          document
+            .querySelector('meta[name="theme-color"]')
+            ?.setAttribute('content', t === 'dark' ? '#000000' : '#ffffff');
+        } catch (_) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>

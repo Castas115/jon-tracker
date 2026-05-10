@@ -13,12 +13,19 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
+export type CreatePayload = {
+  title: string;
+  weekday: number;
+  start_time?: string | null;
+  end_time?: string | null;
+};
+
 export const api = {
   list: () => http<Task[]>('/tasks'),
-  create: (title: string, weekday: number) =>
+  create: (payload: CreatePayload) =>
     http<Task>('/tasks', {
       method: 'POST',
-      body: JSON.stringify({ title, weekday })
+      body: JSON.stringify(payload)
     }),
   remove: (id: number) =>
     http<void>(`/tasks/${id}`, { method: 'DELETE' }),
