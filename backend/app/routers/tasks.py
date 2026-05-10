@@ -14,6 +14,8 @@ def _to_read(task: Task) -> TaskRead:
         id=task.id,
         title=task.title,
         weekday=task.weekday,
+        start_time=task.start_time,
+        end_time=task.end_time,
         created_at=task.created_at,
         completed_dates=sorted(c.completed_on for c in task.completions),
     )
@@ -27,7 +29,12 @@ def list_tasks(db: Session = Depends(get_db)) -> list[TaskRead]:
 
 @router.post("", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
 def create_task(payload: TaskCreate, db: Session = Depends(get_db)) -> TaskRead:
-    task = Task(title=payload.title, weekday=payload.weekday)
+    task = Task(
+        title=payload.title,
+        weekday=payload.weekday,
+        start_time=payload.start_time,
+        end_time=payload.end_time,
+    )
     db.add(task)
     db.commit()
     db.refresh(task)
@@ -39,10 +46,9 @@ def update_task(task_id: int, payload: TaskUpdate, db: Session = Depends(get_db)
     task = db.get(Task, task_id)
     if task is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "task not found")
-    if payload.title is not None:
-        task.title = payload.title
-    if payload.weekday is not None:
-        task.weekday = payload.weekday
+    data = payload.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(task, field, value)
     db.commit()
     db.refresh(task)
     return _to_read(task)

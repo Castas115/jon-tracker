@@ -1,7 +1,8 @@
 from collections.abc import Generator
 from pathlib import Path
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from .config import settings
@@ -25,3 +26,28 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+def ensure_schema(eng: Engine) -> None:
+    """Create tables and apply any incremental column additions for SQLite.
+
+    Light-weight migration that lets us add nullable columns without a full
+    migration tool. Strict-typed changes still need a real tool (alembic) later.
+    """
+    Base.metadata.create_all(bind=eng)
+
+    insp = inspect(eng)
+    if not insp.has_table("tasks"):
+        return
+
+    existing = {c["name"] for c in insp.get_columns("tasks")}
+    additions = []
+    if "start_time" not in existing:
+        additions.append("ALTER TABLE tasks ADD COLUMN start_time VARCHAR(5)")
+    if "end_time" not in existing:
+        additions.append("ALTER TABLE tasks ADD COLUMN end_time VARCHAR(5)")
+
+    if additions:
+        with eng.begin() as conn:
+            for stmt in additions:
+                conn.execute(text(stmt))

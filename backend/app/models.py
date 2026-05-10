@@ -16,6 +16,8 @@ class Task(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(200))
     weekday: Mapped[int] = mapped_column(Integer)  # 0=lunes, 6=domingo
+    start_time: Mapped[str | None] = mapped_column(String(5), nullable=True)  # "HH:MM"
+    end_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
     completions: Mapped[list["TaskCompletion"]] = relationship(
