@@ -18,7 +18,15 @@
   let loading = $state(true);
   let error = $state<string | null>(null);
   let theme = $state<Theme>('dark');
-  let view = $state<View>('week');
+  let view = $state<View>(loadView());
+
+  function loadView(): View {
+    const v = localStorage.getItem('tracker-view');
+    return v === 'month' || v === 'week' ? v : 'week';
+  }
+  $effect(() => {
+    localStorage.setItem('tracker-view', view);
+  });
 
   type DialogInitial = {
     title?: string;
