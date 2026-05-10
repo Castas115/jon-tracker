@@ -1,0 +1,14 @@
+services:
+  backend:
+    build: ./backend
+    container_name: tracker-backend
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+      - ./secrets:/app/secrets:ro
+    environment:
+      DATABASE_URL: sqlite:////app/data/tracker.db
+      GOOGLE_CLIENT_SECRETS_FILE: /app/secrets/credentials.json
+      GOOGLE_TOKEN_FILE: /app/secrets/token.json
+    ports:
+      - "127.0.0.1:8000:8000"
