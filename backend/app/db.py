@@ -59,10 +59,7 @@ def ensure_schema(eng: Engine) -> None:
             # Backfill from the legacy single-weekday column when present.
             if "weekday" in existing:
                 conn.execute(
-                    text(
-                        "UPDATE tasks SET weekdays = '[' || weekday || ']' "
-                        "WHERE weekdays IS NULL"
-                    )
+                    text("UPDATE tasks SET weekdays = '[' || weekday || ']' WHERE weekdays IS NULL")
                 )
         if "fixed_date" not in existing:
             conn.execute(text("ALTER TABLE tasks ADD COLUMN fixed_date DATE"))
