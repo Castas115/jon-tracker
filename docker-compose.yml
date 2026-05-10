@@ -5,12 +5,13 @@ services:
     restart: unless-stopped
     volumes:
       - ./data:/app/data
-      - ./secrets:/app/secrets:ro
+    env_file:
+      # Optional file holding ICS_URL (and any other secrets). Created on
+      # the pi with chmod 600; not synced from the dev machine.
+      - path: ./.env
+        required: false
     environment:
       DATABASE_URL: sqlite:////app/data/tracker.db
-      GOOGLE_CLIENT_SECRETS_FILE: /app/secrets/credentials.json
-      GOOGLE_TOKEN_FILE: /app/data/google_token.json
-      GOOGLE_REDIRECT_URI: http://pi:8000/auth/google/callback
     # Bound on all interfaces so the PWA is reachable via Tailscale.
     # The pi has no public ingress (no port-forwarding); only tailnet peers
     # can reach this port.

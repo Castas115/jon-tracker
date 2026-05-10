@@ -14,7 +14,7 @@
 
   let tasks = $state<Task[]>([]);
   let events = $state<CalendarEvent[]>([]);
-  let googleConnected = $state(false);
+  let calendarConfigured = $state(false);
   let loading = $state(true);
   let error = $state<string | null>(null);
   let theme = $state<Theme>('dark');
@@ -71,11 +71,11 @@
     }
   }
 
-  async function refreshGoogle() {
+  async function refreshCalendar() {
     try {
-      const s = await api.googleStatus();
-      googleConnected = s.connected;
-      if (s.connected) {
+      const s = await api.calendarStatus();
+      calendarConfigured = s.configured;
+      if (s.configured) {
         const dates = weekDates();
         const evs = await api.events(dates[0], dates[6]);
         events = evs;
@@ -83,19 +83,8 @@
         events = [];
       }
     } catch (e) {
-      // Don't surface as a blocking error — missing GCal is not fatal.
-      console.warn('google status/events failed', e);
-    }
-  }
-
-  async function disconnectGoogle() {
-    if (!confirm('Disconnect Google Calendar?')) return;
-    try {
-      await api.googleDisconnect();
-      googleConnected = false;
-      events = [];
-    } catch (e) {
-      error = e instanceof Error ? e.message : String(e);
+      // Calendar feed is optional — log but don't surface as a blocker.
+      console.warn('calendar status/events failed', e);
     }
   }
 
@@ -234,7 +223,7 @@
     theme = loadTheme();
     applyTheme(theme);
     load();
-    refreshGoogle();
+    refreshCalendar();
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   });
@@ -245,19 +234,8 @@
     <header>
       <h1>Jon Tracker</h1>
       <div class="header-actions">
-        {#if googleConnected}
-          <button
-            class="ghost gcal connected"
-            type="button"
-            title="Google Calendar connected — click to disconnect"
-            onclick={disconnectGoogle}
-          >
-            G ✓
-          </button>
-        {:else}
-          <a class="ghost gcal" href="/auth/google/connect" title="Connect Google Calendar">
-            Connect Google
-          </a>
+        {#if calendarConfigured}
+          <span class="cal-badge" title="Google Calendar feed connected">📅</span>
         {/if}
         <button
           class="primary"
@@ -388,23 +366,9 @@
     font-weight: 600;
   }
 
-  .gcal {
-    background: transparent;
-    color: var(--fg-muted);
-    border: 1px solid var(--border);
-    padding: 0.45rem 0.75rem;
-    border-radius: 8px;
-    font: inherit;
-    font-size: 0.85rem;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
+  .cal-badge {
+    font-size: 1.1rem;
     line-height: 1;
-  }
-  .gcal:hover { color: var(--fg); background: var(--bg-3); }
-  .gcal.connected {
-    color: var(--accent);
-    border-color: var(--accent);
+    padding: 0.35rem 0.5rem;
   }
 </style>

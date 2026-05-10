@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .db import engine, ensure_schema
-from .routers import auth, calendar, tasks
+from .routers import calendar, tasks
 
 
 @asynccontextmanager
@@ -27,7 +27,6 @@ app.add_middleware(
 )
 
 app.include_router(tasks.router)
-app.include_router(auth.router)
 app.include_router(calendar.router)
 
 

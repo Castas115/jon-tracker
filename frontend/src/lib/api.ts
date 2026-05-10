@@ -47,8 +47,7 @@ export const api = {
       body: JSON.stringify({ completed_on })
     }),
 
-  googleStatus: () => http<{ connected: boolean }>('/auth/google/status'),
-  googleDisconnect: () => http<void>('/auth/google', { method: 'DELETE' }),
+  calendarStatus: () => http<{ configured: boolean }>('/calendar/status'),
   events: (from: string, to: string) =>
     http<CalendarEvent[]>(`/calendar/events?from=${from}&to=${to}`)
 };

@@ -72,23 +72,21 @@ Tailnet access: `http://pi:8000` (or `https://pi.<tailnet>.ts.net` once `tailsca
 
 ## Google Calendar (read-only)
 
-Sync is **one-way**: events created in Google Calendar appear in the app; tasks created in the app stay local and are not pushed to Google.
+Sync is **one-way**: events created in Google Calendar appear in the app; tasks created in the app stay local and are not pushed to Google. The integration is a plain `.ics` feed pull — no OAuth, no Cloud Console.
 
-One-time setup:
+Setup:
 
-1. Open https://console.cloud.google.com → create or select a project.
-2. Enable the **Google Calendar API** for the project.
-3. *APIs & Services → OAuth consent screen* → External, add your email as a test user.
-4. *Credentials → Create credentials → OAuth client ID → Web application*. Authorised redirect URI: `http://pi:8000/auth/google/callback` (or whatever `GOOGLE_REDIRECT_URI` is set to). Download the JSON.
-5. Copy the file to `~/jon-tracker/secrets/credentials.json` **on the pi** (the deploy script intentionally excludes `secrets/` from rsync). Example:
+1. Open Google Calendar in the browser → ⚙️ Settings → click your calendar in the left sidebar.
+2. Scroll to **Integrate calendar** → copy the URL under *Secret address in iCal format* (the one ending in `/basic.ics`).
+3. On the pi, create `~/jon-tracker/.env` (or append):
    ```fish
-   ssh pi 'mkdir -p ~/jon-tracker/secrets'
-   scp credentials.json pi:~/jon-tracker/secrets/credentials.json
-   ssh pi 'cd ~/jon-tracker && docker compose restart backend'
+   ssh pi 'echo "ICS_URL=PASTE_THE_URL_HERE" >> ~/jon-tracker/.env'
+   ssh pi 'chmod 600 ~/jon-tracker/.env'
+   ssh pi 'cd ~/jon-tracker && docker compose up -d'
    ```
-6. Browse to `http://pi:8000` and click **Connect Google** in the header. The token is stored in `./data/google_token.json`.
+4. Reload `http://pi:8000` — events render as dashed blocks in the week grid.
 
-Disconnect with the green `G ✓` button (clears the local token; revoke fully from your Google account if needed).
+The URL is gitignored (matches `.env`). Treat it like a password: anyone with the URL can read your calendar. Reset it from Google Calendar settings → "Reset" if it leaks.
 
 ## MVP scope
 
