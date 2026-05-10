@@ -19,8 +19,9 @@ from icalendar import Calendar
 
 from .config import settings
 
-_CACHE_TTL_SECONDS = 60
-_cache: tuple[float, bytes] | None = None
+_CACHE_TTL_SECONDS = 300  # 5 minutes
+_raw_cache: tuple[float, bytes] | None = None
+_cal_cache: tuple[float, Calendar] | None = None
 
 
 def is_configured() -> bool:
@@ -28,10 +29,10 @@ def is_configured() -> bool:
 
 
 def _fetch_raw() -> bytes:
-    global _cache
+    global _raw_cache
     now = time.time()
-    if _cache and now - _cache[0] < _CACHE_TTL_SECONDS:
-        return _cache[1]
+    if _raw_cache and now - _raw_cache[0] < _CACHE_TTL_SECONDS:
+        return _raw_cache[1]
     resp = httpx.get(
         settings.ics_url,
         timeout=10.0,
@@ -39,8 +40,23 @@ def _fetch_raw() -> bytes:
         follow_redirects=True,
     )
     resp.raise_for_status()
-    _cache = (now, resp.content)
+    _raw_cache = (now, resp.content)
     return resp.content
+
+
+def _get_calendar() -> Calendar:
+    """Return parsed + RRULE-patched calendar. Cached so repeated requests
+    don't re-parse the entire .ics blob.
+    """
+    global _cal_cache
+    now = time.time()
+    if _cal_cache and now - _cal_cache[0] < _CACHE_TTL_SECONDS:
+        return _cal_cache[1]
+    raw = _fetch_raw().decode("utf-8", errors="replace")
+    cal = Calendar.from_ical(raw)
+    _patch_yearly_rrules(cal)
+    _cal_cache = (now, cal)
+    return cal
 
 
 def _to_iso(value) -> tuple[str, bool]:
@@ -85,9 +101,7 @@ def list_events(from_date: date, to_date: date) -> list[dict]:
     if not is_configured():
         return []
 
-    raw = _fetch_raw().decode("utf-8", errors="replace")
-    cal = Calendar.from_ical(raw)
-    _patch_yearly_rrules(cal)
+    cal = _get_calendar()
 
     # recurring-ical-events expands RRULEs into concrete instances within range.
     expanded = recurring_ical_events.of(cal).between(
