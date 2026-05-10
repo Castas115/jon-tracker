@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { api, todayWeekday } from './lib/api';
+  import { api } from './lib/api';
+  import { ymd } from './lib/dates';
   import { type Task } from './lib/types';
   import { applyTheme, loadTheme, saveTheme, type Theme } from './lib/theme';
   import MonthView from './MonthView.svelte';
@@ -46,8 +47,8 @@
 
   function openCreate(prefill: DialogInitial = {}) {
     dialogInitial = {
-      task_type: 'recurring',
-      weekdays: [todayWeekday()],
+      task_type: 'fixed',
+      fixed_date: ymd(new Date()),
       ...prefill
     };
     dialogOpen = true;
@@ -159,9 +160,9 @@
       onRemove={remove}
       onCreate={(weekday, dateYMD, start, end) =>
         openCreate({
-          task_type: 'recurring',
-          weekdays: [weekday],
+          task_type: 'fixed',
           fixed_date: dateYMD,
+          weekdays: [weekday],
           start,
           end
         })}
