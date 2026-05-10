@@ -14,6 +14,7 @@ class CalendarEvent(BaseModel):
     start: str
     end: str
     all_day: bool
+    kind: str = "event"  # "event" or "birthday"
     location: str | None = None
     description: str | None = None
 

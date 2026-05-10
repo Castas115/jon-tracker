@@ -28,6 +28,7 @@ export type CalendarEvent = {
   start: string;
   end: string;
   all_day: boolean;
+  kind: 'event' | 'birthday';
   location: string | null;
   description: string | null;
 };

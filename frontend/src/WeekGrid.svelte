@@ -81,6 +81,7 @@
   type ParsedEvent = {
     id: string;
     title: string;
+    kind: 'event' | 'birthday';
     weekday: number;
     all_day: boolean;
     start_min: number | null;
@@ -110,6 +111,7 @@
         out.push({
           id: ev.id,
           title: ev.title,
+          kind: ev.kind,
           weekday: wd,
           all_day: true,
           start_min: null,
@@ -123,6 +125,7 @@
         out.push({
           id: ev.id,
           title: ev.title,
+          kind: ev.kind,
           weekday: wd,
           all_day: false,
           start_min: startMin,
@@ -202,7 +205,13 @@
           </button>
         {/each}
         {#each evs as ev (ev.id)}
-          <div class="all-day-block event" title={ev.title}>{ev.title}</div>
+          <div
+            class="all-day-block event"
+            class:birthday={ev.kind === 'birthday'}
+            title={ev.kind === 'birthday' ? `🎂 ${ev.title}` : ev.title}
+          >
+            {ev.kind === 'birthday' ? '🎂 ' : ''}{ev.title}
+          </div>
         {/each}
       </div>
     {/each}
@@ -258,8 +267,15 @@
         {/each}
 
         {#each timedEventsForDay(weekday) as ev (ev.id)}
-          <div class="block event" style={eventBlockStyle(ev)} title={ev.title}>
-            <span class="b-title">{ev.title}</span>
+          <div
+            class="block event"
+            class:birthday={ev.kind === 'birthday'}
+            style={eventBlockStyle(ev)}
+            title={ev.kind === 'birthday' ? `🎂 ${ev.title}` : ev.title}
+          >
+            <span class="b-title">
+              {ev.kind === 'birthday' ? '🎂 ' : ''}{ev.title}
+            </span>
           </div>
         {/each}
       </div>
@@ -407,6 +423,11 @@
     background: transparent;
     color: var(--fg);
     border: 1px dashed var(--accent);
+  }
+  .block.birthday,
+  .all-day-block.birthday {
+    border-style: solid;
+    border-color: color-mix(in srgb, var(--accent) 70%, #ffb5b5);
   }
   .b-title {
     font-size: 0.75rem;
