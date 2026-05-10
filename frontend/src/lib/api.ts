@@ -53,6 +53,13 @@ export const api = {
     http<CalendarEvent[]>(`/calendar/events?from=${from}&to=${to}`)
 };
 
+function ymdLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export function weekDates(): string[] {
   const now = new Date();
   const day = now.getDay();
@@ -63,7 +70,8 @@ export function weekDates(): string[] {
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(mon);
     d.setDate(mon.getDate() + i);
-    return d.toISOString().slice(0, 10);
+    // Use LOCAL date — toISOString() shifts to UTC and breaks Madrid (+1/+2).
+    return ymdLocal(d);
   });
 }
 
