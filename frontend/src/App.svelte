@@ -5,12 +5,13 @@
   import { isInputFocused, isPlainKey } from './lib/keys';
   import { type Task } from './lib/types';
   import { applyTheme, loadTheme, saveTheme, type Theme } from './lib/theme';
+  import DayView from './DayView.svelte';
   import HelpDialog from './HelpDialog.svelte';
   import MonthView from './MonthView.svelte';
   import WeekGrid from './WeekGrid.svelte';
   import TaskFormDialog, { type TaskFormValues } from './TaskFormDialog.svelte';
 
-  type View = 'week' | 'month';
+  type View = 'day' | 'week' | 'month';
 
   let tasks = $state<Task[]>([]);
   let events = $state<CalendarEvent[]>([]);
@@ -22,7 +23,7 @@
 
   function loadView(): View {
     const v = localStorage.getItem('tracker-view');
-    return v === 'month' || v === 'week' ? v : 'week';
+    return v === 'day' || v === 'month' || v === 'week' ? v : 'week';
   }
   $effect(() => {
     localStorage.setItem('tracker-view', view);
@@ -188,6 +189,12 @@
       setCount('');
       return;
     }
+    if (isPlainKey(e, 'd')) {
+      e.preventDefault();
+      view = 'day';
+      setCount('');
+      return;
+    }
     if (isPlainKey(e, 't')) {
       e.preventDefault();
       toggleTheme();
@@ -223,6 +230,7 @@
       else if (isUp) focusedHour = Math.max(6, focusedHour - count);
       else if (isDown) focusedHour = Math.min(23, focusedHour + count);
     } else {
+      // day + month: same date-based motion (h/l ±1 day, j/k ±7 days)
       if (isLeft) focusedDate = shiftDate(focusedDate, -count);
       else if (isRight) focusedDate = shiftDate(focusedDate, count);
       else if (isUp) focusedDate = shiftDate(focusedDate, -7 * count);
@@ -244,6 +252,15 @@
   <div class="controls">
     <header>
       <div class="tabs" role="tablist">
+        <button
+          class="tab"
+          class:active={view === 'day'}
+          role="tab"
+          aria-selected={view === 'day'}
+          onclick={() => (view = 'day')}
+        >
+          Day
+        </button>
         <button
           class="tab"
           class:active={view === 'week'}
@@ -311,6 +328,22 @@
       onToggle={toggle}
       onCreate={(dateYMD) =>
         openCreate({ task_type: 'fixed', fixed_date: dateYMD, start: '', end: '' })}
+    />
+  {:else if view === 'day'}
+    <DayView
+      {tasks}
+      {events}
+      bind:focusedDate
+      onToggle={toggle}
+      onRemove={remove}
+      onCreate={(weekday, dateYMD, start, end) =>
+        openCreate({
+          task_type: 'fixed',
+          fixed_date: dateYMD,
+          weekdays: [weekday],
+          start,
+          end
+        })}
     />
   {:else}
     <WeekGrid

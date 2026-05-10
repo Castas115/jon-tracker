@@ -20,6 +20,7 @@
 
   const shortcuts = [
     { keys: ['c', 'n'], desc: 'New task' },
+    { keys: ['d'], desc: 'Day view' },
     { keys: ['w'], desc: 'Week view' },
     { keys: ['m'], desc: 'Month view' },
     { keys: ['t'], desc: 'Toggle theme' },
