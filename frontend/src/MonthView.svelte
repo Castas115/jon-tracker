@@ -52,10 +52,10 @@
 
 <section class="month">
   <div class="nav">
-    <button class="icon" type="button" aria-label="Mes anterior" onclick={() => nav(-1)}>‹</button>
+    <button class="icon" type="button" aria-label="Previous month" onclick={() => nav(-1)}>‹</button>
     <strong>{monthLabel}</strong>
-    <button class="icon" type="button" aria-label="Mes siguiente" onclick={() => nav(1)}>›</button>
-    <button class="icon today-btn" type="button" onclick={goToday}>Hoy</button>
+    <button class="icon" type="button" aria-label="Next month" onclick={() => nav(1)}>›</button>
+    <button class="icon today-btn" type="button" onclick={goToday}>Today</button>
   </div>
 
   <div class="dow">
@@ -80,7 +80,7 @@
         class:all-done={total > 0 && doneCount === total}
         type="button"
         onclick={() => (selectedYMD = k)}
-        aria-label={`${d.getDate()} ${MONTH_LABELS[d.getMonth()]} - ${doneCount}/${total} tareas`}
+        aria-label={`${d.getDate()} ${MONTH_LABELS[d.getMonth()]} - ${doneCount}/${total} tasks`}
       >
         <span class="num">{d.getDate()}</span>
         {#if total > 0}
@@ -93,10 +93,10 @@
   <article class="day-detail">
     <h3>
       {selectedDate.getDate()} {MONTH_LABELS[selectedDate.getMonth()]}
-      {#if isToday(selectedDate)}<em> · hoy</em>{/if}
+      {#if isToday(selectedDate)}<em> · today</em>{/if}
     </h3>
     {#if selectedTasks.length === 0}
-      <p class="empty">Sin tareas este día</p>
+      <p class="empty">No tasks this day</p>
     {:else}
       <ul>
         {#each selectedTasks as t (t.id)}

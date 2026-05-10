@@ -72,7 +72,7 @@
   </div>
 
   <div class="all-day">
-    <span class="time-col tag">Todo el día</span>
+    <span class="time-col tag">All day</span>
     {#each WEEKDAY_LABELS as _label, weekday}
       {@const items = allDayTasksForDay(weekday)}
       <div class="all-day-cell">
@@ -88,7 +88,7 @@
               e.preventDefault();
               onRemove(t);
             }}
-            title={`${t.title} (clic: marcar · clic-derecho: borrar)`}
+            title={`${t.title} (click: toggle · right-click: delete)`}
           >
             {t.title}
           </button>
@@ -123,7 +123,7 @@
               e.preventDefault();
               onRemove(t);
             }}
-            title={`${t.title} ${fmtTime(t)} (clic: marcar · clic-derecho: borrar)`}
+            title={`${t.title} ${fmtTime(t)} (click: toggle · right-click: delete)`}
           >
             <span class="b-title">{t.title}</span>
             <span class="b-time">{fmtTime(t)}</span>

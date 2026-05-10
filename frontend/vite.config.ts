@@ -11,8 +11,8 @@ export default defineConfig({
       manifest: {
         name: 'Jon Tracker',
         short_name: 'Tracker',
-        description: 'Tareas semanales y calendario',
-        lang: 'es',
+        description: 'Weekly tasks and calendar',
+        lang: 'en',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',

@@ -1,19 +1,19 @@
 export const MONTH_LABELS = [
-  'Enero',
-  'Febrero',
-  'Marzo',
-  'Abril',
-  'Mayo',
-  'Junio',
-  'Julio',
-  'Agosto',
-  'Septiembre',
-  'Octubre',
-  'Noviembre',
-  'Diciembre'
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December'
 ] as const;
 
-/** 0 = lunes ... 6 = domingo (no JS native Sunday=0) */
+/** 0 = Monday ... 6 = Sunday (JS native Sunday=0, normalized here) */
 export function weekdayMonFirst(d: Date): number {
   const day = d.getDay();
   return day === 0 ? 6 : day - 1;

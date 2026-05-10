@@ -1,17 +1,17 @@
 # Jon Tracker
 
-App self-hosted en Raspberry Pi para gestionar tareas semanales recurrentes y calendario. Acceso desde navegador (PWA instalable) y, en fase 2, app + widget Android nativos.
+Self-hosted Raspberry Pi app for managing recurring weekly tasks and a calendar. Accessed from the browser as an installable PWA today; native Android app + widget planned for phase two.
 
 ## Stack
 
-- **Backend**: FastAPI + SQLAlchemy + SQLite (Python 3.12, gestionado con uv)
+- **Backend**: FastAPI + SQLAlchemy + SQLite (Python 3.12, managed with uv)
 - **Frontend**: Svelte 5 + Vite + TypeScript, PWA via `vite-plugin-pwa`
-- **Deploy**: imagen Docker multi-stage (frontend build → static → servido por FastAPI)
-- **Orquestación**: Docker Compose en raspi
-- **Acceso remoto**: Tailscale (tailnet privado)
-- **Sync calendario**: Google Calendar API (TBD)
+- **Deploy**: multi-stage Docker image (frontend build → static → served by FastAPI)
+- **Orchestration**: Docker Compose on the pi
+- **Remote access**: Tailscale (private tailnet only — no public ingress)
+- **Calendar sync**: Google Calendar API (TBD)
 
-## Estructura
+## Layout
 
 ```
 .
@@ -22,23 +22,27 @@ App self-hosted en Raspberry Pi para gestionar tareas semanales recurrentes y ca
 │   └── app/
 │       ├── main.py         # FastAPI + static mount
 │       ├── config.py       # settings
-│       ├── db.py           # SQLAlchemy engine
+│       ├── db.py           # SQLAlchemy engine + light migration
 │       ├── models.py       # Task, TaskCompletion
 │       ├── schemas.py      # Pydantic DTOs
 │       └── routers/
 │           └── tasks.py    # CRUD + toggle
 └── frontend/
     ├── package.json
-    ├── vite.config.ts      # PWA + dev proxy a backend
+    ├── vite.config.ts      # PWA + dev proxy to the backend
     └── src/
-        ├── App.svelte      # vista semanal
-        ├── lib/api.ts      # cliente HTTP
-        └── lib/types.ts
+        ├── App.svelte      # tabs, theme, add form
+        ├── WeekGrid.svelte # hourly week view
+        ├── MonthView.svelte
+        ├── lib/api.ts      # HTTP client
+        ├── lib/types.ts
+        ├── lib/dates.ts
+        └── lib/theme.ts
 ```
 
-## Desarrollo local
+## Local development
 
-Dos procesos: backend en `:8000`, vite en `:5173` (proxea `/tasks` y `/health` al backend).
+Two processes: backend on `:8000`, vite on `:5173` (proxies `/tasks` and `/health` to the backend).
 
 ```fish
 # terminal 1: backend
@@ -52,26 +56,29 @@ npm install
 npm run dev
 ```
 
-UI dev: http://localhost:5173 · API docs: http://localhost:8000/docs
+Dev UI: http://localhost:5173 · API docs: http://localhost:8000/docs
 
-## Deploy raspi
+## Deploy to the pi
 
 ```fish
 ./scripts/deploy.sh                  # full pipeline
-./scripts/deploy.sh --skip-checks    # rápido sin lint
-./scripts/deploy.sh --no-build       # solo restart
+./scripts/deploy.sh --skip-checks    # quick, no lint
+./scripts/deploy.sh --no-build       # restart only
 ```
 
-El script hace: lint backend (ruff) → rsync repo → `docker compose up -d --build` en raspi → health probe.
+The script: lints the backend (ruff) → rsyncs the repo → runs `docker compose up -d --build` on the pi → probes `/health`.
 
-Acceso vía tailnet: `http://raspi:8000` (cuando el bind sea `0.0.0.0` o se sirva con `tailscale serve`).
+Tailnet access: `http://pi:8000` (or `https://pi.<tailnet>.ts.net` once `tailscale serve` is wired up).
 
 ## MVP scope
 
-- [x] CRUD tareas con `weekday` (lun=0 .. dom=6)
-- [x] Toggle completed por fecha
-- [x] Vista semanal agrupada por día con día actual destacado
-- [x] PWA instalable
-- [ ] Vista calendario con eventos Google Calendar (read-only)
-- [ ] Auth (Tailscale-only acceso, sin login propio)
-- [ ] Widget Android nativo (fase 2)
+- [x] Task CRUD with weekday (Mon=0 … Sun=6)
+- [x] Optional `start_time` / `end_time` for hourly blocks
+- [x] Per-date completion toggle
+- [x] Week grid with hour rows + all-day row
+- [x] Month grid with day-detail panel
+- [x] Dark / light theme toggle (persisted)
+- [x] Installable PWA
+- [ ] Google Calendar events overlay (read-only)
+- [ ] HTTPS via `tailscale serve`
+- [ ] Native Android widget (phase 2)

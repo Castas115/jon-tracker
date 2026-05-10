@@ -65,7 +65,7 @@
   }
 
   async function remove(t: Task) {
-    if (!confirm(`¿Eliminar "${t.title}"?`)) return;
+    if (!confirm(`Delete "${t.title}"?`)) return;
     try {
       await api.remove(t.id);
       tasks = tasks.filter((x) => x.id !== t.id);
@@ -87,8 +87,8 @@
     <button
       class="icon"
       type="button"
-      aria-label={theme === 'dark' ? 'Modo día' : 'Modo noche'}
-      title={theme === 'dark' ? 'Modo día' : 'Modo noche'}
+      aria-label={theme === 'dark' ? 'Day mode' : 'Night mode'}
+      title={theme === 'dark' ? 'Day mode' : 'Night mode'}
       onclick={toggleTheme}
     >
       {theme === 'dark' ? '☀' : '☾'}
@@ -103,7 +103,7 @@
       aria-selected={view === 'week'}
       onclick={() => (view = 'week')}
     >
-      Semana
+      Week
     </button>
     <button
       class="tab"
@@ -112,7 +112,7 @@
       aria-selected={view === 'month'}
       onclick={() => (view = 'month')}
     >
-      Mes
+      Month
     </button>
   </div>
 
@@ -120,7 +120,7 @@
     <input
       class="title"
       bind:value={newTitle}
-      placeholder="Nueva tarea..."
+      placeholder="New task..."
       maxlength="200"
       required
     />
@@ -133,16 +133,16 @@
       class="time"
       type="time"
       bind:value={newStart}
-      title="Inicio (vacío = todo el día)"
+      title="Start (empty = all day)"
     />
     <input
       class="time"
       type="time"
       bind:value={newEnd}
-      title="Fin"
+      title="End"
       disabled={!newStart}
     />
-    <button class="primary" type="submit" aria-label="Añadir">+</button>
+    <button class="primary" type="submit" aria-label="Add">+</button>
   </form>
 
   {#if error}
@@ -150,7 +150,7 @@
   {/if}
 
   {#if loading}
-    <p class="empty">Cargando...</p>
+    <p class="empty">Loading...</p>
   {:else if view === 'month'}
     <MonthView {tasks} onToggle={toggle} />
   {:else}
