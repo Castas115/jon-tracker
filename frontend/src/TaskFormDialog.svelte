@@ -39,15 +39,18 @@
   let end = $state('');
   let localError = $state<string | null>(null);
 
+  // Track only `open` so typing in the form doesn't re-run this effect.
+  // The `initial` snapshot is captured untracked at the open transition.
   $effect(() => {
     if (!dialog) return;
     if (open && !dialog.open) {
-      title = initial.title ?? '';
-      taskType = initial.task_type ?? 'recurring';
-      weekdays = initial.weekdays ?? [];
-      fixedDate = initial.fixed_date ?? '';
-      start = initial.start ?? '';
-      end = initial.end ?? '';
+      const snap = $state.snapshot(initial);
+      title = snap.title ?? '';
+      taskType = snap.task_type ?? 'recurring';
+      weekdays = snap.weekdays ?? [];
+      fixedDate = snap.fixed_date ?? '';
+      start = snap.start ?? '';
+      end = snap.end ?? '';
       localError = null;
       dialog.showModal();
       queueMicrotask(() => titleInput?.focus());
@@ -196,8 +199,7 @@
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   }
   dialog::backdrop {
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(2px);
+    background: rgba(0, 0, 0, 0.6);
   }
 
   h2 {
