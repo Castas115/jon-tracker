@@ -39,6 +39,19 @@
   let focusedHour = $state(Math.min(23, Math.max(6, _now.getHours())));
   let focusedDate = $state(ymd(_now));
 
+  // Vim-style count prefix: "3j" → repeat j three times.
+  let pendingCount = $state('');
+  let countTimer: number | null = null;
+  function setCount(next: string) {
+    pendingCount = next;
+    if (countTimer !== null) clearTimeout(countTimer);
+    if (next === '') return;
+    countTimer = window.setTimeout(() => {
+      pendingCount = '';
+      countTimer = null;
+    }, 1500);
+  }
+
   function toggleTheme() {
     theme = theme === 'dark' ? 'light' : 'dark';
     saveTheme(theme);
@@ -108,52 +121,82 @@
     if (isInputFocused()) return;
     if (dialogOpen || helpOpen) return;
 
+    // Escape clears any pending count.
+    if (e.key === 'Escape') {
+      setCount('');
+      return;
+    }
+
+    // Digit prefix accumulates count for the next motion. Don't capture a
+    // leading "0" (vim convention: 0 is a motion, not a count).
+    if (/^[0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (pendingCount === '' && e.key === '0') {
+        // fall through — 0 with no count is a no-op for now
+      } else {
+        e.preventDefault();
+        setCount(pendingCount + e.key);
+        return;
+      }
+    }
+
     // Global commands first.
     if (isPlainKey(e, 'c') || isPlainKey(e, 'n')) {
       e.preventDefault();
       openCreate();
+      setCount('');
       return;
     }
     if (isPlainKey(e, 'w')) {
       e.preventDefault();
       view = 'week';
+      setCount('');
       return;
     }
     if (isPlainKey(e, 'm')) {
       e.preventDefault();
       view = 'month';
+      setCount('');
       return;
     }
     if (isPlainKey(e, 't')) {
       e.preventDefault();
       toggleTheme();
+      setCount('');
       return;
     }
     if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();
       helpOpen = true;
+      setCount('');
       return;
     }
 
-    // Navigation: hjkl + arrows.
+    // Navigation: hjkl + arrows, multiplied by pending count.
     const isLeft = isPlainKey(e, 'h') || isPlainKey(e, 'ArrowLeft');
     const isRight = isPlainKey(e, 'l') || isPlainKey(e, 'ArrowRight');
     const isUp = isPlainKey(e, 'k') || isPlainKey(e, 'ArrowUp');
     const isDown = isPlainKey(e, 'j') || isPlainKey(e, 'ArrowDown');
 
-    if (!isLeft && !isRight && !isUp && !isDown) return;
+    if (!isLeft && !isRight && !isUp && !isDown) {
+      // Any other key cancels the pending count.
+      setCount('');
+      return;
+    }
     e.preventDefault();
 
+    const count = Math.max(1, parseInt(pendingCount, 10) || 1);
+    setCount('');
+
     if (view === 'week') {
-      if (isLeft) focusedWeekday = Math.max(0, focusedWeekday - 1);
-      else if (isRight) focusedWeekday = Math.min(6, focusedWeekday + 1);
-      else if (isUp) focusedHour = Math.max(6, focusedHour - 1);
-      else if (isDown) focusedHour = Math.min(23, focusedHour + 1);
+      if (isLeft) focusedWeekday = Math.max(0, focusedWeekday - count);
+      else if (isRight) focusedWeekday = Math.min(6, focusedWeekday + count);
+      else if (isUp) focusedHour = Math.max(6, focusedHour - count);
+      else if (isDown) focusedHour = Math.min(23, focusedHour + count);
     } else {
-      if (isLeft) focusedDate = shiftDate(focusedDate, -1);
-      else if (isRight) focusedDate = shiftDate(focusedDate, 1);
-      else if (isUp) focusedDate = shiftDate(focusedDate, -7);
-      else if (isDown) focusedDate = shiftDate(focusedDate, 7);
+      if (isLeft) focusedDate = shiftDate(focusedDate, -count);
+      else if (isRight) focusedDate = shiftDate(focusedDate, count);
+      else if (isUp) focusedDate = shiftDate(focusedDate, -7 * count);
+      else if (isDown) focusedDate = shiftDate(focusedDate, 7 * count);
     }
   }
 
