@@ -119,13 +119,27 @@
       {@const dayEvents = eventsForDate(d)}
       {@const doneCount = dayTasks.filter((t) => isCompleted(t, k)).length}
       {@const total = dayTasks.length}
+      {@const items = [
+        ...dayTasks.map((t) => ({
+          kind: t.task_type === 'birthday' ? 'birthday-task' : 'task',
+          title: t.title,
+          done: isCompleted(t, k)
+        })),
+        ...dayEvents.map((e) => ({
+          kind: e.kind === 'birthday' ? 'birthday-event' : 'event',
+          title: e.title,
+          done: false
+        }))
+      ]}
+      {@const visible = items.slice(0, 3)}
+      {@const extra = items.length - visible.length}
       <button
         class="cell"
         class:out={!inMonth}
         class:today={isToday(d)}
         class:selected={selectedYMD === k}
         class:focused={focusedDate === k}
-        class:has={total > 0 || dayEvents.length > 0}
+        class:has={items.length > 0}
         class:all-done={total > 0 && doneCount === total}
         type="button"
         onclick={() => {
@@ -135,12 +149,14 @@
         aria-label={`${d.getDate()} ${MONTH_LABELS[d.getMonth()]} - ${doneCount}/${total} tasks, ${dayEvents.length} events`}
       >
         <span class="num">{d.getDate()}</span>
-        <span class="counts">
-          {#if total > 0}
-            <span class="count">{doneCount}/{total}</span>
-          {/if}
-          {#if dayEvents.length > 0}
-            <span class="count gcount">{dayEvents.length}G</span>
+        <span class="items">
+          {#each visible as it}
+            <span class="item kind-{it.kind}" class:done={it.done}>
+              {#if it.kind === 'birthday-task' || it.kind === 'birthday-event'}🎂 {/if}{it.title}
+            </span>
+          {/each}
+          {#if extra > 0}
+            <span class="more">+{extra} more</span>
           {/if}
         </span>
       </button>
@@ -225,18 +241,20 @@
   }
 
   .cell {
-    aspect-ratio: 1 / 1;
-    padding: 0.25rem;
+    min-height: 110px;
+    padding: 0.3rem 0.35rem;
     background: var(--bg-2);
     border: 1px solid var(--border);
     border-radius: 6px;
     color: inherit;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     align-items: stretch;
+    gap: 4px;
     cursor: pointer;
     font: inherit;
+    text-align: left;
+    overflow: hidden;
     transition: background-color 80ms ease, border-color 80ms ease;
   }
   .cell:hover { background: var(--bg-3); }
@@ -263,19 +281,45 @@
     line-height: 1;
   }
 
-  .counts {
+  .items {
     display: flex;
-    justify-content: flex-end;
-    gap: 4px;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
   }
-  .count {
+  .item {
+    font-size: 0.7rem;
+    line-height: 1.2;
+    padding: 1px 4px;
+    border-radius: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .item.kind-task {
+    background: color-mix(in srgb, var(--accent) 35%, transparent);
+    color: var(--fg);
+  }
+  .item.kind-event {
+    background: color-mix(in srgb, var(--gcal) 35%, transparent);
+    color: var(--fg);
+  }
+  .item.kind-birthday-task {
+    background: color-mix(in srgb, var(--accent) 30%, transparent);
+    color: var(--fg);
+  }
+  .item.kind-birthday-event {
+    background: color-mix(in srgb, #c97a8a 35%, transparent);
+    color: var(--fg);
+  }
+  .item.done { opacity: 0.5; text-decoration: line-through; }
+  .more {
     font-size: 0.65rem;
-    text-align: right;
     color: var(--fg-muted);
-    letter-spacing: 0.04em;
+    padding: 0 4px;
   }
-  .count.gcount { color: var(--gcal); font-weight: 600; }
-  .cell.selected .count.gcount { color: var(--accent-fg); opacity: 0.8; }
+  .cell.selected .item,
+  .cell.selected .more { color: var(--accent-fg); }
 
   .day-detail {
     margin-top: 0.5rem;
