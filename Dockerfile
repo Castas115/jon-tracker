@@ -9,7 +9,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # ---- backend ----
-FROM mirror.gcr.io/library/python:3.12-slim
+FROM mirror.gcr.io/library/python:3.12-slim AS backend
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_LINK_MODE=copy \

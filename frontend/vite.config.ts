@@ -2,6 +2,10 @@ import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// In docker dev compose this is set to http://backend:8000 (compose DNS).
+// Native dev (uvicorn on host) defaults to localhost.
+const backendUrl = process.env.VITE_BACKEND_URL ?? 'http://127.0.0.1:8000';
+
 export default defineConfig({
   plugins: [
     svelte(),
@@ -24,9 +28,11 @@ export default defineConfig({
     })
   ],
   server: {
+    host: true,
+    watch: { usePolling: true },
     proxy: {
-      '/tasks': 'http://127.0.0.1:8000',
-      '/health': 'http://127.0.0.1:8000'
+      '/tasks': backendUrl,
+      '/health': backendUrl
     }
   }
 });
