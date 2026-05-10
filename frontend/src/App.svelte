@@ -1,22 +1,22 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api, todayWeekday } from './lib/api';
-  import { WEEKDAY_LABELS_LONG, type Task } from './lib/types';
+  import { type Task } from './lib/types';
   import { applyTheme, loadTheme, saveTheme, type Theme } from './lib/theme';
   import MonthView from './MonthView.svelte';
   import WeekGrid from './WeekGrid.svelte';
+  import TaskFormDialog, { type TaskFormValues } from './TaskFormDialog.svelte';
 
   type View = 'week' | 'month';
 
   let tasks = $state<Task[]>([]);
   let loading = $state(true);
   let error = $state<string | null>(null);
-  let newTitle = $state('');
-  let newWeekday = $state(todayWeekday());
-  let newStart = $state('');
-  let newEnd = $state('');
   let theme = $state<Theme>('dark');
   let view = $state<View>('week');
+
+  let dialogOpen = $state(false);
+  let dialogInitial = $state<{ title?: string; weekday?: number; start?: string; end?: string }>({});
 
   function toggleTheme() {
     theme = theme === 'dark' ? 'light' : 'dark';
@@ -35,21 +35,20 @@
     }
   }
 
-  async function addTask(e: SubmitEvent) {
-    e.preventDefault();
-    const title = newTitle.trim();
-    if (!title) return;
+  function openCreate(prefill: typeof dialogInitial = {}) {
+    dialogInitial = { weekday: todayWeekday(), ...prefill };
+    dialogOpen = true;
+  }
+
+  function closeDialog() {
+    dialogOpen = false;
+  }
+
+  async function submitDialog(v: TaskFormValues) {
     try {
-      const t = await api.create({
-        title,
-        weekday: newWeekday,
-        start_time: newStart || null,
-        end_time: newStart && newEnd ? newEnd : null
-      });
+      const t = await api.create(v);
       tasks = [...tasks, t];
-      newTitle = '';
-      newStart = '';
-      newEnd = '';
+      dialogOpen = false;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     }
@@ -82,83 +81,83 @@
 </script>
 
 <main>
-  <header>
-    <h1>Jon Tracker</h1>
-    <button
-      class="icon"
-      type="button"
-      aria-label={theme === 'dark' ? 'Day mode' : 'Night mode'}
-      title={theme === 'dark' ? 'Day mode' : 'Night mode'}
-      onclick={toggleTheme}
-    >
-      {theme === 'dark' ? '☀' : '☾'}
-    </button>
-  </header>
+  <div class="controls">
+    <header>
+      <h1>Jon Tracker</h1>
+      <div class="header-actions">
+        <button
+          class="primary"
+          type="button"
+          onclick={() => openCreate()}
+        >
+          + New task
+        </button>
+        <button
+          class="icon"
+          type="button"
+          aria-label={theme === 'dark' ? 'Day mode' : 'Night mode'}
+          title={theme === 'dark' ? 'Day mode' : 'Night mode'}
+          onclick={toggleTheme}
+        >
+          {theme === 'dark' ? '☀' : '☾'}
+        </button>
+      </div>
+    </header>
 
-  <div class="tabs" role="tablist">
-    <button
-      class="tab"
-      class:active={view === 'week'}
-      role="tab"
-      aria-selected={view === 'week'}
-      onclick={() => (view = 'week')}
-    >
-      Week
-    </button>
-    <button
-      class="tab"
-      class:active={view === 'month'}
-      role="tab"
-      aria-selected={view === 'month'}
-      onclick={() => (view = 'month')}
-    >
-      Month
-    </button>
+    <div class="tabs" role="tablist">
+      <button
+        class="tab"
+        class:active={view === 'week'}
+        role="tab"
+        aria-selected={view === 'week'}
+        onclick={() => (view = 'week')}
+      >
+        Week
+      </button>
+      <button
+        class="tab"
+        class:active={view === 'month'}
+        role="tab"
+        aria-selected={view === 'month'}
+        onclick={() => (view = 'month')}
+      >
+        Month
+      </button>
+    </div>
+
+    {#if error}
+      <div class="error">{error}</div>
+    {/if}
   </div>
-
-  <form class="add" onsubmit={addTask}>
-    <input
-      class="title"
-      bind:value={newTitle}
-      placeholder="New task..."
-      maxlength="200"
-      required
-    />
-    <select bind:value={newWeekday}>
-      {#each WEEKDAY_LABELS_LONG as label, i}
-        <option value={i}>{label}</option>
-      {/each}
-    </select>
-    <input
-      class="time"
-      type="time"
-      bind:value={newStart}
-      title="Start (empty = all day)"
-    />
-    <input
-      class="time"
-      type="time"
-      bind:value={newEnd}
-      title="End"
-      disabled={!newStart}
-    />
-    <button class="primary" type="submit" aria-label="Add">+</button>
-  </form>
-
-  {#if error}
-    <div class="error">{error}</div>
-  {/if}
 
   {#if loading}
     <p class="empty">Loading...</p>
   {:else if view === 'month'}
     <MonthView {tasks} onToggle={toggle} />
   {:else}
-    <WeekGrid {tasks} onToggle={toggle} onRemove={remove} />
+    <WeekGrid
+      {tasks}
+      onToggle={toggle}
+      onRemove={remove}
+      onCreate={(weekday, start, end) => openCreate({ weekday, start, end })}
+    />
   {/if}
 </main>
 
+<TaskFormDialog
+  open={dialogOpen}
+  initial={dialogInitial}
+  onSubmit={submitDialog}
+  onClose={closeDialog}
+/>
+
 <style>
+  .header-actions {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+  }
+
   .tabs {
     display: flex;
     gap: 4px;
@@ -186,10 +185,4 @@
     color: var(--accent-fg);
     font-weight: 600;
   }
-
-  form.add { flex-wrap: wrap; }
-  form.add .title { flex: 1 1 100%; }
-  form.add select { flex: 1 1 auto; min-width: 130px; }
-  form.add .time { flex: 0 0 auto; width: 110px; }
-  form.add .primary { flex: 0 0 auto; }
 </style>

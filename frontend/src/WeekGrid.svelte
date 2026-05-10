@@ -6,9 +6,10 @@
     tasks: Task[];
     onToggle: (task: Task, dateYMD: string) => void;
     onRemove: (task: Task) => void;
+    onCreate: (weekday: number, start: string, end: string) => void;
   };
 
-  const { tasks, onToggle, onRemove }: Props = $props();
+  const { tasks, onToggle, onRemove, onCreate }: Props = $props();
 
   const HOUR_START = 6;
   const HOUR_END = 24; // exclusive (so last cell is 23:00)
@@ -58,6 +59,18 @@
   }
 
   const gridHeight = (HOUR_END - HOUR_START) * CELL_PX;
+
+  function handleColClick(e: MouseEvent, weekday: number) {
+    const target = e.target as HTMLElement;
+    if (target.closest('.block')) return; // clicking a task → its handler runs
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    let hour = Math.floor(y / CELL_PX) + HOUR_START;
+    if (hour < HOUR_START) hour = HOUR_START;
+    if (hour >= HOUR_END - 1) hour = HOUR_END - 2;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    onCreate(weekday, `${pad(hour)}:00`, `${pad(hour + 1)}:00`);
+  }
 </script>
 
 <section class="grid-wrap">
@@ -105,7 +118,20 @@
     </div>
 
     {#each WEEKDAY_LABELS as _label, weekday}
-      <div class="day-col" class:today={weekday === today}>
+      <div
+        class="day-col"
+        class:today={weekday === today}
+        role="button"
+        tabindex="0"
+        aria-label={`Add task for ${WEEKDAY_LABELS[weekday]}`}
+        onclick={(e) => handleColClick(e, weekday)}
+        onkeydown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleColClick(e as unknown as MouseEvent, weekday);
+          }
+        }}
+      >
         {#each HOURS as _h}
           <div class="hour-cell"></div>
         {/each}
