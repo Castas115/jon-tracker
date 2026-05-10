@@ -10,5 +10,8 @@ services:
       DATABASE_URL: sqlite:////app/data/tracker.db
       GOOGLE_CLIENT_SECRETS_FILE: /app/secrets/credentials.json
       GOOGLE_TOKEN_FILE: /app/secrets/token.json
+    # Bound on all interfaces so the PWA is reachable via Tailscale.
+    # The pi has no public ingress (no port-forwarding); only tailnet peers
+    # can reach this port.
     ports:
-      - "127.0.0.1:8000:8000"
+      - "8000:8000"
