@@ -37,17 +37,19 @@
 <dialog bind:this={dialog} onclose={onClose} onclick={handleBackdropClick}>
   <h2>Keyboard shortcuts</h2>
   <table>
-    {#each shortcuts as s}
-      <tr>
-        <td class="keys">
-          {#each s.keys as k, i}
-            {#if i > 0}<span class="sep">/</span>{/if}
-            <kbd>{k}</kbd>
-          {/each}
-        </td>
-        <td>{s.desc}</td>
-      </tr>
-    {/each}
+    <tbody>
+      {#each shortcuts as s}
+        <tr>
+          <td class="keys">
+            {#each s.keys as k, i}
+              {#if i > 0}<span class="sep">/</span>{/if}
+              <kbd>{k}</kbd>
+            {/each}
+          </td>
+          <td>{s.desc}</td>
+        </tr>
+      {/each}
+    </tbody>
   </table>
   <div class="actions">
     <button type="button" class="primary" onclick={onClose}>Close</button>
