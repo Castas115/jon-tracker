@@ -54,12 +54,40 @@ def _to_iso(value) -> tuple[str, bool]:
     return str(value), False
 
 
+def _patch_yearly_rrules(cal: Calendar) -> None:
+    """Google emits annual birthdays as `FREQ=YEARLY;BYMONTHDAY=N` with no
+    `BYMONTH`. RFC 5545 says BYMONTHDAY MUST come with BYMONTH for YEARLY
+    rules, so libraries fall back to "Nth of every month" — completely wrong.
+    Backfill BYMONTH from DTSTART so the rule expands once per year as
+    intended.
+    """
+    for ev in cal.walk("VEVENT"):
+        rrule = ev.get("RRULE")
+        if not rrule:
+            continue
+        freq = rrule.get("FREQ") or []
+        if freq and freq[0] != "YEARLY":
+            continue
+        if rrule.get("BYMONTH"):
+            continue
+        if not rrule.get("BYMONTHDAY"):
+            continue
+        dtstart = ev.get("DTSTART")
+        if dtstart is None:
+            continue
+        month = getattr(dtstart.dt, "month", None)
+        if month is None:
+            continue
+        rrule["BYMONTH"] = [month]
+
+
 def list_events(from_date: date, to_date: date) -> list[dict]:
     if not is_configured():
         return []
 
     raw = _fetch_raw().decode("utf-8", errors="replace")
     cal = Calendar.from_ical(raw)
+    _patch_yearly_rrules(cal)
 
     # recurring-ical-events expands RRULEs into concrete instances within range.
     expanded = recurring_ical_events.of(cal).between(
