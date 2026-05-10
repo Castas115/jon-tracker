@@ -49,7 +49,15 @@
     if (t.task_type === 'recurring') {
       return (t.weekdays ?? []).includes(weekday);
     }
-    return t.fixed_date === dateYMD;
+    if (t.task_type === 'fixed') {
+      return t.fixed_date === dateYMD;
+    }
+    if (t.task_type === 'birthday' && t.fixed_date) {
+      const d = new Date(dateYMD + 'T00:00:00');
+      const bd = new Date(t.fixed_date + 'T00:00:00');
+      return bd.getMonth() === d.getMonth() && bd.getDate() === d.getDate();
+    }
+    return false;
   }
 
   function timedTasksForDay(weekday: number): Task[] {
@@ -193,15 +201,16 @@
           <button
             class="all-day-block"
             class:done
+            class:bday-task={t.task_type === 'birthday'}
             type="button"
             onclick={() => onToggle(t, dateYMD)}
             oncontextmenu={(e) => {
               e.preventDefault();
               onRemove(t);
             }}
-            title={`${t.title} (click: toggle · right-click: delete)`}
+            title={`${t.task_type === 'birthday' ? '🎂 ' : ''}${t.title} (click: toggle · right-click: delete)`}
           >
-            {t.title}
+            {t.task_type === 'birthday' ? '🎂 ' : ''}{t.title}
           </button>
         {/each}
         {#each evs as ev (ev.id)}

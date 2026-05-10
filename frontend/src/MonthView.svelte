@@ -45,7 +45,12 @@
     const k = ymd(d);
     return tasks.filter((t) => {
       if (t.task_type === 'recurring') return (t.weekdays ?? []).includes(wd);
-      return t.fixed_date === k;
+      if (t.task_type === 'fixed') return t.fixed_date === k;
+      if (t.task_type === 'birthday' && t.fixed_date) {
+        const bd = new Date(t.fixed_date + 'T00:00:00');
+        return bd.getMonth() === d.getMonth() && bd.getDate() === d.getDate();
+      }
+      return false;
     });
   }
 

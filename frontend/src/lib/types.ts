@@ -1,4 +1,4 @@
-export type TaskType = 'recurring' | 'fixed';
+export type TaskType = 'recurring' | 'fixed' | 'birthday';
 
 export type Task = {
   id: number;

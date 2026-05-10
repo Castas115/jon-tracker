@@ -80,18 +80,19 @@
       localError = 'Pick at least one day';
       return;
     }
-    if (taskType === 'fixed' && !fixedDate) {
+    if ((taskType === 'fixed' || taskType === 'birthday') && !fixedDate) {
       localError = 'Pick a date';
       return;
     }
 
+    const isBirthday = taskType === 'birthday';
     onSubmit({
       title: t,
       task_type: taskType,
       weekdays: taskType === 'recurring' ? weekdays : null,
-      fixed_date: taskType === 'fixed' ? fixedDate : null,
-      start_time: start || null,
-      end_time: start && end ? end : null
+      fixed_date: taskType === 'fixed' || taskType === 'birthday' ? fixedDate : null,
+      start_time: isBirthday ? null : (start || null),
+      end_time: isBirthday ? null : (start && end ? end : null)
     });
   }
 
@@ -113,7 +114,7 @@
         aria-selected={taskType === 'fixed'}
         onclick={() => (taskType = 'fixed')}
       >
-        Fixed date
+        Fixed
       </button>
       <button
         type="button"
@@ -124,6 +125,16 @@
         onclick={() => (taskType = 'recurring')}
       >
         Recurring
+      </button>
+      <button
+        type="button"
+        class="type-tab"
+        class:active={taskType === 'birthday'}
+        role="tab"
+        aria-selected={taskType === 'birthday'}
+        onclick={() => (taskType = 'birthday')}
+      >
+        🎂 Birthday
       </button>
     </div>
 
@@ -159,23 +170,27 @@
       </div>
     {:else}
       <label class="field">
-        <span>Date</span>
+        <span>{taskType === 'birthday' ? 'Birth date' : 'Date'}</span>
         <input type="date" bind:value={fixedDate} required />
       </label>
     {/if}
 
-    <div class="row">
-      <label class="field">
-        <span>Start</span>
-        <input type="time" bind:value={start} />
-      </label>
-      <label class="field">
-        <span>End</span>
-        <input type="time" bind:value={end} disabled={!start} />
-      </label>
-    </div>
+    {#if taskType !== 'birthday'}
+      <div class="row">
+        <label class="field">
+          <span>Start</span>
+          <input type="time" bind:value={start} />
+        </label>
+        <label class="field">
+          <span>End</span>
+          <input type="time" bind:value={end} disabled={!start} />
+        </label>
+      </div>
 
-    <p class="hint">Leave times empty for an all-day task.</p>
+      <p class="hint">Leave times empty for an all-day task.</p>
+    {:else}
+      <p class="hint">Birthdays repeat every year on the same month and day.</p>
+    {/if}
 
     {#if localError}
       <p class="err">{localError}</p>

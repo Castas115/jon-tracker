@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, model_validator
 
 TimeStr = Annotated[str, Field(pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")]
 Weekday = Annotated[int, Field(ge=0, le=6)]
-TaskType = Literal["recurring", "fixed"]
+TaskType = Literal["recurring", "fixed", "birthday"]
 
 
 def _validate(model):
@@ -25,6 +25,13 @@ def _validate(model):
             raise ValueError("fixed tasks need fixed_date")
         if model.weekdays:
             raise ValueError("fixed tasks must not set weekdays")
+    elif model.task_type == "birthday":
+        if model.fixed_date is None:
+            raise ValueError("birthday tasks need fixed_date (any year, month+day matter)")
+        if model.weekdays:
+            raise ValueError("birthday tasks must not set weekdays")
+        if model.start_time or model.end_time:
+            raise ValueError("birthday tasks must not have times")
     return model
 
 
