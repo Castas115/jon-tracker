@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { api, weekDates, type CalendarEvent } from './lib/api';
+  import { api, type CalendarEvent } from './lib/api';
   import { ymd } from './lib/dates';
   import { isInputFocused, isPlainKey } from './lib/keys';
   import { type Task } from './lib/types';
@@ -76,14 +76,17 @@
       const s = await api.calendarStatus();
       calendarConfigured = s.configured;
       if (s.configured) {
-        const dates = weekDates();
-        const evs = await api.events(dates[0], dates[6]);
-        events = evs;
+        // Fetch a wide-enough window so both week and month views are covered
+        // by a single call.
+        const now = new Date();
+        const from = new Date(now.getFullYear(), now.getMonth(), 1);
+        from.setDate(from.getDate() - 14);
+        const to = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+        events = await api.events(ymd(from), ymd(to));
       } else {
         events = [];
       }
     } catch (e) {
-      // Calendar feed is optional — log but don't surface as a blocker.
       console.warn('calendar status/events failed', e);
     }
   }
@@ -297,6 +300,7 @@
   {:else if view === 'month'}
     <MonthView
       {tasks}
+      {events}
       bind:focusedDate
       onToggle={toggle}
       onCreate={(dateYMD) =>

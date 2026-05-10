@@ -7,10 +7,12 @@
     weekdayMonFirst,
     ymd
   } from './lib/dates';
+  import { type CalendarEvent } from './lib/api';
   import { WEEKDAY_LABELS, type Task } from './lib/types';
 
   type Props = {
     tasks: Task[];
+    events?: CalendarEvent[];
     focusedDate?: string;
     onToggle: (task: Task, dateYMD: string) => void;
     onCreate: (dateYMD: string) => void;
@@ -18,6 +20,7 @@
 
   let {
     tasks,
+    events = [],
     focusedDate = $bindable(ymd(new Date())),
     onToggle,
     onCreate
@@ -58,6 +61,24 @@
     return t.completed_dates.includes(dateYMD);
   }
 
+  function eventDateYMD(ev: CalendarEvent): string {
+    if (ev.all_day) return ev.start; // already YYYY-MM-DD
+    return ymd(new Date(ev.start));
+  }
+
+  function eventsForDate(d: Date): CalendarEvent[] {
+    const k = ymd(d);
+    return events.filter((ev) => eventDateYMD(ev) === k);
+  }
+
+  function fmtTime(ev: CalendarEvent): string {
+    if (ev.all_day) return '';
+    const s = new Date(ev.start);
+    const hh = String(s.getHours()).padStart(2, '0');
+    const mm = String(s.getMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
+  }
+
   function nav(delta: number) {
     const next = addMonths(year, month, delta);
     year = next.year;
@@ -73,6 +94,7 @@
 
   const selectedDate = $derived(new Date(selectedYMD + 'T00:00:00'));
   const selectedTasks = $derived(tasksForDate(selectedDate));
+  const selectedEvents = $derived(eventsForDate(selectedDate));
 </script>
 
 <section class="month">
@@ -94,6 +116,7 @@
       {@const k = ymd(d)}
       {@const inMonth = d.getMonth() === month}
       {@const dayTasks = tasksForDate(d)}
+      {@const dayEvents = eventsForDate(d)}
       {@const doneCount = dayTasks.filter((t) => isCompleted(t, k)).length}
       {@const total = dayTasks.length}
       <button
@@ -102,19 +125,24 @@
         class:today={isToday(d)}
         class:selected={selectedYMD === k}
         class:focused={focusedDate === k}
-        class:has={total > 0}
+        class:has={total > 0 || dayEvents.length > 0}
         class:all-done={total > 0 && doneCount === total}
         type="button"
         onclick={() => {
           selectedYMD = k;
           onCreate(k);
         }}
-        aria-label={`${d.getDate()} ${MONTH_LABELS[d.getMonth()]} - ${doneCount}/${total} tasks`}
+        aria-label={`${d.getDate()} ${MONTH_LABELS[d.getMonth()]} - ${doneCount}/${total} tasks, ${dayEvents.length} events`}
       >
         <span class="num">{d.getDate()}</span>
-        {#if total > 0}
-          <span class="count">{doneCount}/{total}</span>
-        {/if}
+        <span class="counts">
+          {#if total > 0}
+            <span class="count">{doneCount}/{total}</span>
+          {/if}
+          {#if dayEvents.length > 0}
+            <span class="count gcount">{dayEvents.length}G</span>
+          {/if}
+        </span>
       </button>
     {/each}
   </div>
@@ -124,8 +152,8 @@
       {selectedDate.getDate()} {MONTH_LABELS[selectedDate.getMonth()]}
       {#if isToday(selectedDate)}<em> · today</em>{/if}
     </h3>
-    {#if selectedTasks.length === 0}
-      <p class="empty">No tasks this day</p>
+    {#if selectedTasks.length === 0 && selectedEvents.length === 0}
+      <p class="empty">Nothing this day</p>
     {:else}
       <ul>
         {#each selectedTasks as t (t.id)}
@@ -137,8 +165,19 @@
                 checked={done}
                 onchange={() => onToggle(t, selectedYMD)}
               />
-              <span>{t.title}</span>
+              <span>
+                {t.task_type === 'birthday' ? '🎂 ' : ''}{t.title}
+              </span>
             </label>
+          </li>
+        {/each}
+        {#each selectedEvents as ev (ev.id)}
+          <li class="event-row" class:birthday={ev.kind === 'birthday'}>
+            <span class="ev-time">{fmtTime(ev) || 'all day'}</span>
+            <span class="ev-title">
+              {ev.kind === 'birthday' ? '🎂 ' : ''}{ev.title}
+            </span>
+            <span class="ev-tag" aria-label="Google">G</span>
           </li>
         {/each}
       </ul>
@@ -224,12 +263,19 @@
     line-height: 1;
   }
 
+  .counts {
+    display: flex;
+    justify-content: flex-end;
+    gap: 4px;
+  }
   .count {
     font-size: 0.65rem;
     text-align: right;
     color: var(--fg-muted);
     letter-spacing: 0.04em;
   }
+  .count.gcount { color: var(--gcal); font-weight: 600; }
+  .cell.selected .count.gcount { color: var(--accent-fg); opacity: 0.8; }
 
   .day-detail {
     margin-top: 0.5rem;
@@ -283,6 +329,33 @@
   .day-detail li.done span {
     color: var(--done);
     text-decoration: line-through;
+  }
+
+  .event-row {
+    color: var(--gcal);
+    gap: 0.5rem;
+  }
+  .event-row.birthday { color: #c97a8a; }
+  .ev-time {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.78rem;
+    color: var(--fg-muted);
+    flex: none;
+    width: 4rem;
+  }
+  .ev-title { flex: 1; }
+  .ev-tag {
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--gcal) 30%, transparent);
+    color: var(--gcal);
+    letter-spacing: 0.04em;
+  }
+  .event-row.birthday .ev-tag {
+    background: color-mix(in srgb, #c97a8a 30%, transparent);
+    color: #c97a8a;
   }
 
   @media (max-width: 480px) {
