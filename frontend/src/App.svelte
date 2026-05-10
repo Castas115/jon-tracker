@@ -2,8 +2,10 @@
   import { onMount } from 'svelte';
   import { api } from './lib/api';
   import { ymd } from './lib/dates';
+  import { isInputFocused, isPlainKey } from './lib/keys';
   import { type Task } from './lib/types';
   import { applyTheme, loadTheme, saveTheme, type Theme } from './lib/theme';
+  import HelpDialog from './HelpDialog.svelte';
   import MonthView from './MonthView.svelte';
   import WeekGrid from './WeekGrid.svelte';
   import TaskFormDialog, { type TaskFormValues } from './TaskFormDialog.svelte';
@@ -27,6 +29,7 @@
 
   let dialogOpen = $state(false);
   let dialogInitial = $state<DialogInitial>({});
+  let helpOpen = $state(false);
 
   function toggleTheme() {
     theme = theme === 'dark' ? 'light' : 'dark';
@@ -87,10 +90,34 @@
     }
   }
 
+  function handleKey(e: KeyboardEvent) {
+    if (isInputFocused()) return;
+    if (dialogOpen || helpOpen) return; // dialog handles its own keys
+
+    if (isPlainKey(e, 'c') || isPlainKey(e, 'n')) {
+      e.preventDefault();
+      openCreate();
+    } else if (isPlainKey(e, 'w')) {
+      e.preventDefault();
+      view = 'week';
+    } else if (isPlainKey(e, 'm')) {
+      e.preventDefault();
+      view = 'month';
+    } else if (isPlainKey(e, 't')) {
+      e.preventDefault();
+      toggleTheme();
+    } else if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      helpOpen = true;
+    }
+  }
+
   onMount(() => {
     theme = loadTheme();
     applyTheme(theme);
     load();
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
   });
 </script>
 
@@ -103,6 +130,7 @@
           class="primary"
           type="button"
           onclick={() => openCreate()}
+          title="New task (c)"
         >
           + New task
         </button>
@@ -110,10 +138,19 @@
           class="icon"
           type="button"
           aria-label={theme === 'dark' ? 'Day mode' : 'Night mode'}
-          title={theme === 'dark' ? 'Day mode' : 'Night mode'}
+          title={`${theme === 'dark' ? 'Day mode' : 'Night mode'} (t)`}
           onclick={toggleTheme}
         >
           {theme === 'dark' ? '☀' : '☾'}
+        </button>
+        <button
+          class="icon"
+          type="button"
+          aria-label="Keyboard shortcuts"
+          title="Keyboard shortcuts (?)"
+          onclick={() => (helpOpen = true)}
+        >
+          ?
         </button>
       </div>
     </header>
@@ -176,6 +213,8 @@
   onSubmit={submitDialog}
   onClose={closeDialog}
 />
+
+<HelpDialog open={helpOpen} onClose={() => (helpOpen = false)} />
 
 <style>
   .header-actions {
