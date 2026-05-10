@@ -15,7 +15,9 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
 
 export type CreatePayload = {
   title: string;
-  weekday: number;
+  task_type: 'recurring' | 'fixed';
+  weekdays?: number[] | null;
+  fixed_date?: string | null; // YYYY-MM-DD
   start_time?: string | null;
   end_time?: string | null;
 };

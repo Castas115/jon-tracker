@@ -26,7 +26,11 @@
 
   function tasksForDate(d: Date): Task[] {
     const wd = weekdayMonFirst(d);
-    return tasks.filter((t) => t.weekday === wd);
+    const k = ymd(d);
+    return tasks.filter((t) => {
+      if (t.task_type === 'recurring') return (t.weekdays ?? []).includes(wd);
+      return t.fixed_date === k;
+    });
   }
 
   function isCompleted(t: Task, dateYMD: string): boolean {

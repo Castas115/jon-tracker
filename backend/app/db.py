@@ -40,14 +40,29 @@ def ensure_schema(eng: Engine) -> None:
     if not insp.has_table("tasks"):
         return
 
-    existing = {c["name"] for c in insp.get_columns("tasks")}
-    additions = []
-    if "start_time" not in existing:
-        additions.append("ALTER TABLE tasks ADD COLUMN start_time VARCHAR(5)")
-    if "end_time" not in existing:
-        additions.append("ALTER TABLE tasks ADD COLUMN end_time VARCHAR(5)")
+    with eng.begin() as conn:
+        existing = {c["name"] for c in insp.get_columns("tasks")}
 
-    if additions:
-        with eng.begin() as conn:
-            for stmt in additions:
-                conn.execute(text(stmt))
+        if "start_time" not in existing:
+            conn.execute(text("ALTER TABLE tasks ADD COLUMN start_time VARCHAR(5)"))
+        if "end_time" not in existing:
+            conn.execute(text("ALTER TABLE tasks ADD COLUMN end_time VARCHAR(5)"))
+        if "task_type" not in existing:
+            conn.execute(
+                text(
+                    "ALTER TABLE tasks ADD COLUMN task_type VARCHAR(16) "
+                    "NOT NULL DEFAULT 'recurring'"
+                )
+            )
+        if "weekdays" not in existing:
+            conn.execute(text("ALTER TABLE tasks ADD COLUMN weekdays TEXT"))
+            # Backfill from the legacy single-weekday column when present.
+            if "weekday" in existing:
+                conn.execute(
+                    text(
+                        "UPDATE tasks SET weekdays = '[' || weekday || ']' "
+                        "WHERE weekdays IS NULL"
+                    )
+                )
+        if "fixed_date" not in existing:
+            conn.execute(text("ALTER TABLE tasks ADD COLUMN fixed_date DATE"))

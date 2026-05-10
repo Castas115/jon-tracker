@@ -1,7 +1,11 @@
+export type TaskType = 'recurring' | 'fixed';
+
 export type Task = {
   id: number;
   title: string;
-  weekday: number;
+  task_type: TaskType;
+  weekdays: number[] | null; // recurring: 1+ entries; fixed: null
+  fixed_date: string | null; // YYYY-MM-DD; fixed only
   start_time: string | null; // "HH:MM" or null = all day
   end_time: string | null;
   created_at: string;

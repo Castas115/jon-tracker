@@ -1,16 +1,20 @@
 <script lang="ts">
-  import { WEEKDAY_LABELS_LONG } from './lib/types';
+  import { WEEKDAY_LABELS, WEEKDAY_LABELS_LONG, type TaskType } from './lib/types';
 
   export type TaskFormValues = {
     title: string;
-    weekday: number;
+    task_type: TaskType;
+    weekdays: number[] | null;
+    fixed_date: string | null;
     start_time: string | null;
     end_time: string | null;
   };
 
   type Initial = Partial<{
     title: string;
-    weekday: number;
+    task_type: TaskType;
+    weekdays: number[];
+    fixed_date: string;
     start: string;
     end: string;
   }>;
@@ -28,7 +32,9 @@
   let titleInput: HTMLInputElement | null = $state(null);
 
   let title = $state('');
-  let weekday = $state(0);
+  let taskType = $state<TaskType>('recurring');
+  let weekdays = $state<number[]>([]);
+  let fixedDate = $state('');
   let start = $state('');
   let end = $state('');
   let localError = $state<string | null>(null);
@@ -37,7 +43,9 @@
     if (!dialog) return;
     if (open && !dialog.open) {
       title = initial.title ?? '';
-      weekday = initial.weekday ?? 0;
+      taskType = initial.task_type ?? 'recurring';
+      weekdays = initial.weekdays ?? [];
+      fixedDate = initial.fixed_date ?? '';
       start = initial.start ?? '';
       end = initial.end ?? '';
       localError = null;
@@ -47,6 +55,12 @@
       dialog.close();
     }
   });
+
+  function toggleDay(d: number) {
+    weekdays = weekdays.includes(d)
+      ? weekdays.filter((x) => x !== d)
+      : [...weekdays, d].sort((a, b) => a - b);
+  }
 
   function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
@@ -59,9 +73,20 @@
       localError = 'End must be after start';
       return;
     }
+    if (taskType === 'recurring' && weekdays.length === 0) {
+      localError = 'Pick at least one day';
+      return;
+    }
+    if (taskType === 'fixed' && !fixedDate) {
+      localError = 'Pick a date';
+      return;
+    }
+
     onSubmit({
       title: t,
-      weekday,
+      task_type: taskType,
+      weekdays: taskType === 'recurring' ? weekdays : null,
+      fixed_date: taskType === 'fixed' ? fixedDate : null,
       start_time: start || null,
       end_time: start && end ? end : null
     });
@@ -76,6 +101,29 @@
   <form onsubmit={handleSubmit}>
     <h2>New task</h2>
 
+    <div class="type-tabs" role="tablist">
+      <button
+        type="button"
+        class="type-tab"
+        class:active={taskType === 'recurring'}
+        role="tab"
+        aria-selected={taskType === 'recurring'}
+        onclick={() => (taskType = 'recurring')}
+      >
+        Recurring
+      </button>
+      <button
+        type="button"
+        class="type-tab"
+        class:active={taskType === 'fixed'}
+        role="tab"
+        aria-selected={taskType === 'fixed'}
+        onclick={() => (taskType = 'fixed')}
+      >
+        Fixed date
+      </button>
+    </div>
+
     <label class="field">
       <span>Title</span>
       <input
@@ -88,14 +136,30 @@
       />
     </label>
 
-    <label class="field">
-      <span>Day</span>
-      <select bind:value={weekday}>
-        {#each WEEKDAY_LABELS_LONG as label, i}
-          <option value={i}>{label}</option>
-        {/each}
-      </select>
-    </label>
+    {#if taskType === 'recurring'}
+      <div class="field">
+        <span>Days</span>
+        <div class="days">
+          {#each WEEKDAY_LABELS as label, i}
+            <button
+              type="button"
+              class="day"
+              class:on={weekdays.includes(i)}
+              aria-label={WEEKDAY_LABELS_LONG[i]}
+              aria-pressed={weekdays.includes(i)}
+              onclick={() => toggleDay(i)}
+            >
+              {label}
+            </button>
+          {/each}
+        </div>
+      </div>
+    {:else}
+      <label class="field">
+        <span>Date</span>
+        <input type="date" bind:value={fixedDate} required />
+      </label>
+    {/if}
 
     <div class="row">
       <label class="field">
@@ -108,7 +172,7 @@
       </label>
     </div>
 
-    <p class="hint">Leave times empty to make it an all-day task.</p>
+    <p class="hint">Leave times empty for an all-day task.</p>
 
     {#if localError}
       <p class="err">{localError}</p>
@@ -137,7 +201,7 @@
   }
 
   h2 {
-    margin: 0 0 1rem;
+    margin: 0 0 0.85rem;
     font-size: 1.05rem;
     font-weight: 600;
   }
@@ -146,6 +210,33 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+  }
+
+  .type-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-3);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .type-tab {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--fg-muted);
+    padding: 0.45rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.85rem;
+    transition: background-color 100ms ease, color 100ms ease;
+  }
+  .type-tab:hover { color: var(--fg); }
+  .type-tab.active {
+    background: var(--accent);
+    color: var(--accent-fg);
+    font-weight: 600;
   }
 
   .field {
@@ -157,13 +248,37 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
-  .field input,
-  .field select {
+  .field input {
     width: 100%;
     text-transform: none;
     letter-spacing: normal;
     font-size: 0.95rem;
     color: var(--fg);
+  }
+
+  .days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .day {
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    color: var(--fg-muted);
+    padding: 0.5rem 0;
+    border-radius: 6px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.8rem;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+  .day:hover { color: var(--fg); }
+  .day.on {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-color: var(--accent);
+    font-weight: 600;
   }
 
   .row {

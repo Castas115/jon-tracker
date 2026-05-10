@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, String
+from sqlalchemy import JSON, Date, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -15,7 +15,11 @@ class Task(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(200))
-    weekday: Mapped[int] = mapped_column(Integer)  # 0=lunes, 6=domingo
+    task_type: Mapped[str] = mapped_column(String(16), default="recurring")
+    # Recurring tasks: list of weekdays 0..6 (Mon..Sun); fixed tasks: NULL.
+    weekdays: Mapped[list[int] | None] = mapped_column(JSON, nullable=True)
+    # Fixed-date tasks: the single calendar date; recurring: NULL.
+    fixed_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     start_time: Mapped[str | None] = mapped_column(String(5), nullable=True)  # "HH:MM"
     end_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)

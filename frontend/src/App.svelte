@@ -15,8 +15,17 @@
   let theme = $state<Theme>('dark');
   let view = $state<View>('week');
 
+  type DialogInitial = {
+    title?: string;
+    task_type?: 'recurring' | 'fixed';
+    weekdays?: number[];
+    fixed_date?: string;
+    start?: string;
+    end?: string;
+  };
+
   let dialogOpen = $state(false);
-  let dialogInitial = $state<{ title?: string; weekday?: number; start?: string; end?: string }>({});
+  let dialogInitial = $state<DialogInitial>({});
 
   function toggleTheme() {
     theme = theme === 'dark' ? 'light' : 'dark';
@@ -35,8 +44,12 @@
     }
   }
 
-  function openCreate(prefill: typeof dialogInitial = {}) {
-    dialogInitial = { weekday: todayWeekday(), ...prefill };
+  function openCreate(prefill: DialogInitial = {}) {
+    dialogInitial = {
+      task_type: 'recurring',
+      weekdays: [todayWeekday()],
+      ...prefill
+    };
     dialogOpen = true;
   }
 
@@ -139,7 +152,8 @@
       {tasks}
       onToggle={toggle}
       onRemove={remove}
-      onCreate={(weekday, start, end) => openCreate({ weekday, start, end })}
+      onCreate={(weekday, start, end) =>
+        openCreate({ task_type: 'recurring', weekdays: [weekday], start, end })}
     />
   {/if}
 </main>

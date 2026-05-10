@@ -34,14 +34,23 @@
     return `top: ${Math.max(0, top)}px; height: ${Math.max(20, height - 2)}px;`;
   }
 
+  function matchesDay(t: Task, weekday: number, dateYMD: string): boolean {
+    if (t.task_type === 'recurring') {
+      return (t.weekdays ?? []).includes(weekday);
+    }
+    return t.fixed_date === dateYMD;
+  }
+
   function timedTasksForDay(weekday: number): Task[] {
+    const dateYMD = dates[weekday];
     return tasks
-      .filter((t) => t.weekday === weekday && t.start_time !== null)
+      .filter((t) => matchesDay(t, weekday, dateYMD) && t.start_time !== null)
       .sort((a, b) => (a.start_time ?? '').localeCompare(b.start_time ?? ''));
   }
 
   function allDayTasksForDay(weekday: number): Task[] {
-    return tasks.filter((t) => t.weekday === weekday && t.start_time === null);
+    const dateYMD = dates[weekday];
+    return tasks.filter((t) => matchesDay(t, weekday, dateYMD) && t.start_time === null);
   }
 
   function isDone(t: Task, dateYMD: string): boolean {
