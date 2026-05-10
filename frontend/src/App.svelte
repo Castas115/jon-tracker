@@ -31,6 +31,14 @@
   let dialogInitial = $state<DialogInitial>({});
   let helpOpen = $state(false);
 
+  // Cursor for keyboard navigation. Week: weekday 0..6, hour 6..23.
+  // Month: a YYYY-MM-DD pointing at any day in the month grid.
+  const _now = new Date();
+  const _weekdayMonFirst = (_now.getDay() === 0 ? 6 : _now.getDay() - 1);
+  let focusedWeekday = $state(_weekdayMonFirst);
+  let focusedHour = $state(Math.min(23, Math.max(6, _now.getHours())));
+  let focusedDate = $state(ymd(_now));
+
   function toggleTheme() {
     theme = theme === 'dark' ? 'light' : 'dark';
     saveTheme(theme);
@@ -90,25 +98,62 @@
     }
   }
 
+  function shiftDate(dateYMD: string, days: number): string {
+    const d = new Date(dateYMD + 'T00:00:00');
+    d.setDate(d.getDate() + days);
+    return ymd(d);
+  }
+
   function handleKey(e: KeyboardEvent) {
     if (isInputFocused()) return;
-    if (dialogOpen || helpOpen) return; // dialog handles its own keys
+    if (dialogOpen || helpOpen) return;
 
+    // Global commands first.
     if (isPlainKey(e, 'c') || isPlainKey(e, 'n')) {
       e.preventDefault();
       openCreate();
-    } else if (isPlainKey(e, 'w')) {
+      return;
+    }
+    if (isPlainKey(e, 'w')) {
       e.preventDefault();
       view = 'week';
-    } else if (isPlainKey(e, 'm')) {
+      return;
+    }
+    if (isPlainKey(e, 'm')) {
       e.preventDefault();
       view = 'month';
-    } else if (isPlainKey(e, 't')) {
+      return;
+    }
+    if (isPlainKey(e, 't')) {
       e.preventDefault();
       toggleTheme();
-    } else if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      return;
+    }
+    if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();
       helpOpen = true;
+      return;
+    }
+
+    // Navigation: hjkl + arrows.
+    const isLeft = isPlainKey(e, 'h') || isPlainKey(e, 'ArrowLeft');
+    const isRight = isPlainKey(e, 'l') || isPlainKey(e, 'ArrowRight');
+    const isUp = isPlainKey(e, 'k') || isPlainKey(e, 'ArrowUp');
+    const isDown = isPlainKey(e, 'j') || isPlainKey(e, 'ArrowDown');
+
+    if (!isLeft && !isRight && !isUp && !isDown) return;
+    e.preventDefault();
+
+    if (view === 'week') {
+      if (isLeft) focusedWeekday = Math.max(0, focusedWeekday - 1);
+      else if (isRight) focusedWeekday = Math.min(6, focusedWeekday + 1);
+      else if (isUp) focusedHour = Math.max(6, focusedHour - 1);
+      else if (isDown) focusedHour = Math.min(23, focusedHour + 1);
+    } else {
+      if (isLeft) focusedDate = shiftDate(focusedDate, -1);
+      else if (isRight) focusedDate = shiftDate(focusedDate, 1);
+      else if (isUp) focusedDate = shiftDate(focusedDate, -7);
+      else if (isDown) focusedDate = shiftDate(focusedDate, 7);
     }
   }
 
@@ -186,6 +231,7 @@
   {:else if view === 'month'}
     <MonthView
       {tasks}
+      bind:focusedDate
       onToggle={toggle}
       onCreate={(dateYMD) =>
         openCreate({ task_type: 'fixed', fixed_date: dateYMD, start: '', end: '' })}
@@ -193,6 +239,8 @@
   {:else}
     <WeekGrid
       {tasks}
+      {focusedWeekday}
+      {focusedHour}
       onToggle={toggle}
       onRemove={remove}
       onCreate={(weekday, dateYMD, start, end) =>

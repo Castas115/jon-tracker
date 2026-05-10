@@ -11,16 +11,31 @@
 
   type Props = {
     tasks: Task[];
+    focusedDate?: string;
     onToggle: (task: Task, dateYMD: string) => void;
     onCreate: (dateYMD: string) => void;
   };
 
-  const { tasks, onToggle, onCreate }: Props = $props();
+  let {
+    tasks,
+    focusedDate = $bindable(ymd(new Date())),
+    onToggle,
+    onCreate
+  }: Props = $props();
 
   const now = new Date();
   let year = $state(now.getFullYear());
   let month = $state(now.getMonth());
   let selectedYMD = $state(ymd(now));
+
+  // When the keyboard focus moves outside the visible month, follow it.
+  $effect(() => {
+    const d = new Date(focusedDate + 'T00:00:00');
+    if (d.getFullYear() !== year || d.getMonth() !== month) {
+      year = d.getFullYear();
+      month = d.getMonth();
+    }
+  });
 
   const grid = $derived(monthGrid(year, month));
   const monthLabel = $derived(`${MONTH_LABELS[month]} ${year}`);
@@ -81,6 +96,7 @@
         class:out={!inMonth}
         class:today={isToday(d)}
         class:selected={selectedYMD === k}
+        class:focused={focusedDate === k}
         class:has={total > 0}
         class:all-done={total > 0 && doneCount === total}
         type="button"
@@ -190,6 +206,9 @@
     background: var(--accent);
     color: var(--accent-fg);
     border-color: var(--accent);
+  }
+  .cell.focused {
+    box-shadow: 0 0 0 2px var(--accent);
   }
   .cell.selected .count { color: var(--accent-fg); }
   .cell.all-done:not(.selected) { background: color-mix(in srgb, var(--accent) 14%, var(--bg-2)); }

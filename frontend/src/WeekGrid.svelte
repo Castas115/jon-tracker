@@ -4,12 +4,21 @@
 
   type Props = {
     tasks: Task[];
+    focusedWeekday?: number;
+    focusedHour?: number;
     onToggle: (task: Task, dateYMD: string) => void;
     onRemove: (task: Task) => void;
     onCreate: (weekday: number, dateYMD: string, start: string, end: string) => void;
   };
 
-  const { tasks, onToggle, onRemove, onCreate }: Props = $props();
+  const {
+    tasks,
+    focusedWeekday = -1,
+    focusedHour = -1,
+    onToggle,
+    onRemove,
+    onCreate
+  }: Props = $props();
 
   const HOUR_START = 6;
   const HOUR_END = 24; // exclusive (so last cell is 23:00)
@@ -141,8 +150,11 @@
           }
         }}
       >
-        {#each HOURS as _h}
-          <div class="hour-cell"></div>
+        {#each HOURS as h}
+          <div
+            class="hour-cell"
+            class:focused={weekday === focusedWeekday && h === focusedHour}
+          ></div>
         {/each}
 
         {#each timedTasksForDay(weekday) as t (t.id)}
@@ -273,6 +285,10 @@
     border-top: 1px solid var(--border);
   }
   .day-col .hour-cell:first-child { border-top: none; }
+  .hour-cell.focused {
+    background: color-mix(in srgb, var(--accent) 25%, transparent);
+    box-shadow: inset 0 0 0 2px var(--accent);
+  }
 
   .block {
     position: absolute;
