@@ -243,7 +243,26 @@
 <main>
   <div class="controls">
     <header>
-      <h1>Jon Tracker</h1>
+      <div class="tabs" role="tablist">
+        <button
+          class="tab"
+          class:active={view === 'week'}
+          role="tab"
+          aria-selected={view === 'week'}
+          onclick={() => (view = 'week')}
+        >
+          Week
+        </button>
+        <button
+          class="tab"
+          class:active={view === 'month'}
+          role="tab"
+          aria-selected={view === 'month'}
+          onclick={() => (view = 'month')}
+        >
+          Month
+        </button>
+      </div>
       <div class="header-actions">
         {#if calendarConfigured}
           <span class="cal-badge" title="Google Calendar feed connected">📅</span>
@@ -276,27 +295,6 @@
         </button>
       </div>
     </header>
-
-    <div class="tabs" role="tablist">
-      <button
-        class="tab"
-        class:active={view === 'week'}
-        role="tab"
-        aria-selected={view === 'week'}
-        onclick={() => (view = 'week')}
-      >
-        Week
-      </button>
-      <button
-        class="tab"
-        class:active={view === 'month'}
-        role="tab"
-        aria-selected={view === 'month'}
-        onclick={() => (view = 'month')}
-      >
-        Month
-      </button>
-    </div>
 
     {#if error}
       <div class="error">{error}</div>
@@ -357,7 +355,8 @@
     padding: 4px;
     border-radius: var(--radius);
     border: 1px solid var(--border);
-    margin-bottom: 0.75rem;
+    flex: 1;
+    max-width: 320px;
   }
   .tab {
     flex: 1;
