@@ -95,8 +95,18 @@ The URL is gitignored (matches `.env`). Treat it like a password: anyone with th
 - [x] Per-date completion toggle
 - [x] Week grid with hour rows + all-day row
 - [x] Month grid with day-detail panel
+- [x] Day grid with single-column nav
 - [x] Dark / light theme toggle (persisted)
 - [x] Installable PWA
-- [ ] Google Calendar events overlay (read-only)
+- [x] Google Calendar events overlay (read-only via ICS feed)
+- [x] Birthdays (local + detected from feed) with 🎂
+- [x] Recurring (multi-day) and fixed-date task types
+- [x] Vim-style keyboard nav (hjkl + count prefix)
 - [ ] HTTPS via `tailscale serve`
-- [ ] Native Android widget (phase 2)
+
+## Backlog
+
+- [ ] **Gym section** — workout templates, set/rep tracking, history
+- [ ] **Daily checklist** — morning routine / habits panel separate from tasks
+- [ ] **Android app** — native client wrapping the PWA + offline cache
+- [ ] **Android widgets** — home-screen tile showing today's tasks + quick toggle
