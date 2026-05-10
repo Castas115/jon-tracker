@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { weekDates, todayWeekday } from './lib/api';
+  import { weekDates, todayWeekday, type CalendarEvent } from './lib/api';
   import { WEEKDAY_LABELS, type Task } from './lib/types';
 
   type Props = {
     tasks: Task[];
+    events?: CalendarEvent[];
     focusedWeekday?: number;
     focusedHour?: number;
     onToggle: (task: Task, dateYMD: string) => void;
@@ -13,6 +14,7 @@
 
   const {
     tasks,
+    events = [],
     focusedWeekday = -1,
     focusedHour = -1,
     onToggle,
@@ -76,6 +78,80 @@
     return String(d.getDate());
   }
 
+  type ParsedEvent = {
+    id: string;
+    title: string;
+    weekday: number;
+    all_day: boolean;
+    start_min: number | null;
+    end_min: number | null;
+  };
+
+  function parseEventsForWeek(): ParsedEvent[] {
+    const out: ParsedEvent[] = [];
+    const monday = new Date(dates[0] + 'T00:00:00');
+    const sunday = new Date(dates[6] + 'T23:59:59');
+    for (const ev of events) {
+      let startDate: Date;
+      let endDate: Date | null = null;
+      let allDay = ev.all_day;
+      if (allDay) {
+        // Date strings YYYY-MM-DD
+        startDate = new Date(ev.start + 'T00:00:00');
+        endDate = ev.end ? new Date(ev.end + 'T00:00:00') : null;
+      } else {
+        startDate = new Date(ev.start);
+        endDate = ev.end ? new Date(ev.end) : null;
+      }
+      if (startDate < monday || startDate > sunday) continue;
+
+      const wd = startDate.getDay() === 0 ? 6 : startDate.getDay() - 1;
+      if (allDay) {
+        out.push({
+          id: ev.id,
+          title: ev.title,
+          weekday: wd,
+          all_day: true,
+          start_min: null,
+          end_min: null
+        });
+      } else {
+        const startMin = startDate.getHours() * 60 + startDate.getMinutes();
+        const endMin = endDate
+          ? endDate.getHours() * 60 + endDate.getMinutes()
+          : startMin + 60;
+        out.push({
+          id: ev.id,
+          title: ev.title,
+          weekday: wd,
+          all_day: false,
+          start_min: startMin,
+          end_min: endMin
+        });
+      }
+    }
+    return out;
+  }
+
+  const parsedEvents = $derived(parseEventsForWeek());
+
+  function eventBlockStyle(ev: ParsedEvent): string {
+    if (ev.start_min === null || ev.end_min === null) return '';
+    const top = ((ev.start_min - HOUR_START * 60) / 60) * CELL_PX;
+    const height = ((ev.end_min - ev.start_min) / 60) * CELL_PX;
+    return `top: ${Math.max(0, top)}px; height: ${Math.max(20, height - 2)}px;`;
+  }
+
+  function timedEventsForDay(weekday: number): ParsedEvent[] {
+    return parsedEvents
+      .filter((e) => e.weekday === weekday && !e.all_day)
+      .sort((a, b) => (a.start_min ?? 0) - (b.start_min ?? 0));
+  }
+
+  function allDayEventsForDay(weekday: number): ParsedEvent[] {
+    return parsedEvents.filter((e) => e.weekday === weekday && e.all_day);
+  }
+
   const gridHeight = (HOUR_END - HOUR_START) * CELL_PX;
 
   function handleColClick(e: MouseEvent, weekday: number) {
@@ -106,6 +182,7 @@
     <span class="time-col tag">All day</span>
     {#each WEEKDAY_LABELS as _label, weekday}
       {@const items = allDayTasksForDay(weekday)}
+      {@const evs = allDayEventsForDay(weekday)}
       <div class="all-day-cell">
         {#each items as t (t.id)}
           {@const dateYMD = dates[weekday]}
@@ -123,6 +200,9 @@
           >
             {t.title}
           </button>
+        {/each}
+        {#each evs as ev (ev.id)}
+          <div class="all-day-block event" title={ev.title}>{ev.title}</div>
         {/each}
       </div>
     {/each}
@@ -175,6 +255,12 @@
             <span class="b-title">{t.title}</span>
             <span class="b-time">{fmtTime(t)}</span>
           </button>
+        {/each}
+
+        {#each timedEventsForDay(weekday) as ev (ev.id)}
+          <div class="block event" style={eventBlockStyle(ev)} title={ev.title}>
+            <span class="b-title">{ev.title}</span>
+          </div>
         {/each}
       </div>
     {/each}
@@ -310,6 +396,17 @@
   .block.done {
     opacity: 0.45;
     text-decoration: line-through;
+  }
+  .block.event {
+    background: transparent;
+    color: var(--fg);
+    border: 1.5px dashed var(--accent);
+    cursor: default;
+  }
+  .all-day-block.event {
+    background: transparent;
+    color: var(--fg);
+    border: 1px dashed var(--accent);
   }
   .b-title {
     font-size: 0.75rem;

@@ -9,7 +9,8 @@ services:
     environment:
       DATABASE_URL: sqlite:////app/data/tracker.db
       GOOGLE_CLIENT_SECRETS_FILE: /app/secrets/credentials.json
-      GOOGLE_TOKEN_FILE: /app/secrets/token.json
+      GOOGLE_TOKEN_FILE: /app/data/google_token.json
+      GOOGLE_REDIRECT_URI: http://pi:8000/auth/google/callback
     # Bound on all interfaces so the PWA is reachable via Tailscale.
     # The pi has no public ingress (no port-forwarding); only tailnet peers
     # can reach this port.

@@ -32,7 +32,9 @@ export default defineConfig({
     watch: { usePolling: true },
     proxy: {
       '/tasks': backendUrl,
-      '/health': backendUrl
+      '/health': backendUrl,
+      '/auth': backendUrl,
+      '/calendar': backendUrl
     }
   }
 });

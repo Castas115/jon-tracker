@@ -70,6 +70,26 @@ The script: lints the backend (ruff) → rsyncs the repo → runs `docker compos
 
 Tailnet access: `http://pi:8000` (or `https://pi.<tailnet>.ts.net` once `tailscale serve` is wired up).
 
+## Google Calendar (read-only)
+
+Sync is **one-way**: events created in Google Calendar appear in the app; tasks created in the app stay local and are not pushed to Google.
+
+One-time setup:
+
+1. Open https://console.cloud.google.com → create or select a project.
+2. Enable the **Google Calendar API** for the project.
+3. *APIs & Services → OAuth consent screen* → External, add your email as a test user.
+4. *Credentials → Create credentials → OAuth client ID → Web application*. Authorised redirect URI: `http://pi:8000/auth/google/callback` (or whatever `GOOGLE_REDIRECT_URI` is set to). Download the JSON.
+5. Copy the file to `~/jon-tracker/secrets/credentials.json` **on the pi** (the deploy script intentionally excludes `secrets/` from rsync). Example:
+   ```fish
+   ssh pi 'mkdir -p ~/jon-tracker/secrets'
+   scp credentials.json pi:~/jon-tracker/secrets/credentials.json
+   ssh pi 'cd ~/jon-tracker && docker compose restart backend'
+   ```
+6. Browse to `http://pi:8000` and click **Connect Google** in the header. The token is stored in `./data/google_token.json`.
+
+Disconnect with the green `G ✓` button (clears the local token; revoke fully from your Google account if needed).
+
 ## MVP scope
 
 - [x] Task CRUD with weekday (Mon=0 … Sun=6)

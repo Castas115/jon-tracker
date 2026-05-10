@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { api } from './lib/api';
+  import { api, weekDates, type CalendarEvent } from './lib/api';
   import { ymd } from './lib/dates';
   import { isInputFocused, isPlainKey } from './lib/keys';
   import { type Task } from './lib/types';
@@ -13,6 +13,8 @@
   type View = 'week' | 'month';
 
   let tasks = $state<Task[]>([]);
+  let events = $state<CalendarEvent[]>([]);
+  let googleConnected = $state(false);
   let loading = $state(true);
   let error = $state<string | null>(null);
   let theme = $state<Theme>('dark');
@@ -66,6 +68,34 @@
       error = e instanceof Error ? e.message : String(e);
     } finally {
       loading = false;
+    }
+  }
+
+  async function refreshGoogle() {
+    try {
+      const s = await api.googleStatus();
+      googleConnected = s.connected;
+      if (s.connected) {
+        const dates = weekDates();
+        const evs = await api.events(dates[0], dates[6]);
+        events = evs;
+      } else {
+        events = [];
+      }
+    } catch (e) {
+      // Don't surface as a blocking error — missing GCal is not fatal.
+      console.warn('google status/events failed', e);
+    }
+  }
+
+  async function disconnectGoogle() {
+    if (!confirm('Disconnect Google Calendar?')) return;
+    try {
+      await api.googleDisconnect();
+      googleConnected = false;
+      events = [];
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
     }
   }
 
@@ -204,6 +234,7 @@
     theme = loadTheme();
     applyTheme(theme);
     load();
+    refreshGoogle();
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   });
@@ -214,6 +245,20 @@
     <header>
       <h1>Jon Tracker</h1>
       <div class="header-actions">
+        {#if googleConnected}
+          <button
+            class="ghost gcal connected"
+            type="button"
+            title="Google Calendar connected — click to disconnect"
+            onclick={disconnectGoogle}
+          >
+            G ✓
+          </button>
+        {:else}
+          <a class="ghost gcal" href="/auth/google/connect" title="Connect Google Calendar">
+            Connect Google
+          </a>
+        {/if}
         <button
           class="primary"
           type="button"
@@ -282,6 +327,7 @@
   {:else}
     <WeekGrid
       {tasks}
+      {events}
       {focusedWeekday}
       {focusedHour}
       onToggle={toggle}
@@ -340,5 +386,25 @@
     background: var(--accent);
     color: var(--accent-fg);
     font-weight: 600;
+  }
+
+  .gcal {
+    background: transparent;
+    color: var(--fg-muted);
+    border: 1px solid var(--border);
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+  }
+  .gcal:hover { color: var(--fg); background: var(--bg-3); }
+  .gcal.connected {
+    color: var(--accent);
+    border-color: var(--accent);
   }
 </style>
