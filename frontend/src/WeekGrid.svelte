@@ -26,6 +26,11 @@
   const HOUR_END = 24; // exclusive (so last cell is 23:00)
   const HOURS = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i);
   const CELL_PX = 48; // height per hour cell
+  // Working hours window highlighted on Mon..Fri (08:30 → 17:00).
+  const WORK_START_MIN = 8 * 60 + 30;
+  const WORK_END_MIN = 17 * 60;
+  const WORK_TOP_PX = ((WORK_START_MIN - HOUR_START * 60) / 60) * CELL_PX;
+  const WORK_HEIGHT_PX = ((WORK_END_MIN - WORK_START_MIN) / 60) * CELL_PX;
 
   const dates = weekDates();
   const today = todayWeekday();
@@ -251,6 +256,13 @@
           }
         }}
       >
+        {#if weekday < 5}
+          <div
+            class="work-band"
+            style:top="{WORK_TOP_PX}px"
+            style:height="{WORK_HEIGHT_PX}px"
+          ></div>
+        {/if}
         {#each HOURS as h}
           <div
             class="hour-cell"
@@ -394,6 +406,17 @@
     border-left: 1px solid var(--border);
   }
   .day-col.today { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+
+  .work-band {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: color-mix(in srgb, var(--accent) 7%, transparent);
+    border-top: 1px dashed color-mix(in srgb, var(--accent) 30%, transparent);
+    border-bottom: 1px dashed color-mix(in srgb, var(--accent) 30%, transparent);
+    pointer-events: none;
+    z-index: 0;
+  }
 
   .hour-cell {
     height: var(--cell);
