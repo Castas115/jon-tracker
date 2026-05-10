@@ -108,22 +108,22 @@
       <button
         type="button"
         class="type-tab"
-        class:active={taskType === 'recurring'}
-        role="tab"
-        aria-selected={taskType === 'recurring'}
-        onclick={() => (taskType = 'recurring')}
-      >
-        Recurring
-      </button>
-      <button
-        type="button"
-        class="type-tab"
         class:active={taskType === 'fixed'}
         role="tab"
         aria-selected={taskType === 'fixed'}
         onclick={() => (taskType = 'fixed')}
       >
         Fixed date
+      </button>
+      <button
+        type="button"
+        class="type-tab"
+        class:active={taskType === 'recurring'}
+        role="tab"
+        aria-selected={taskType === 'recurring'}
+        onclick={() => (taskType = 'recurring')}
+      >
+        Recurring
       </button>
     </div>
 
