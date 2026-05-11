@@ -362,16 +362,19 @@
     min-height: 0;
   }
   .main {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
+    display: flex;
+    flex-direction: row;
     flex: 1;
     min-height: 0;
+    min-width: 0;
   }
   .grid-area {
     display: flex;
     flex-direction: column;
+    flex: 1;
     min-width: 0;
     min-height: 0;
+    overflow: hidden;
   }
   .body-scroll {
     flex: 1;
@@ -588,7 +591,7 @@
   }
 
   @media (max-width: 960px) {
-    .main { grid-template-columns: 1fr; }
+    .main { flex-direction: column; }
   }
 
   @media (max-width: 600px) {

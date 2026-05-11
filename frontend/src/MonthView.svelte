@@ -199,16 +199,18 @@
   }
 
   .main {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
+    display: flex;
+    flex-direction: row;
     gap: 0.75rem;
     flex: 1;
     min-height: 0;
+    min-width: 0;
   }
   .cal {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    flex: 1;
     min-width: 0;
     min-height: 0;
     overflow-y: auto;
@@ -349,9 +351,7 @@
   .cell.today.selected .more { color: var(--today-fg); }
 
   @media (max-width: 960px) {
-    .main {
-      grid-template-columns: 1fr;
-    }
+    .main { flex-direction: column; }
     .cal { overflow-y: visible; }
   }
 
