@@ -362,16 +362,16 @@
     min-height: 0;
   }
   .main {
-    display: flex;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: 1fr 320px;
     flex: 1;
     min-height: 0;
     min-width: 0;
+    width: 100%;
   }
   .grid-area {
     display: flex;
     flex-direction: column;
-    flex: 1;
     min-width: 0;
     min-height: 0;
     overflow: hidden;
@@ -591,7 +591,7 @@
   }
 
   @media (max-width: 960px) {
-    .main { flex-direction: column; }
+    .main { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 600px) {

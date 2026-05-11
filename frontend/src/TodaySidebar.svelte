@@ -76,8 +76,7 @@
     gap: 1rem;
     overflow-y: auto;
     min-height: 0;
-    flex: 0 0 320px;
-    width: 320px;
+    min-width: 0;
     box-sizing: border-box;
   }
   .panel {
@@ -160,8 +159,6 @@
       border-left: none;
       border-top: 1px solid var(--border);
       overflow-y: visible;
-      flex: 1 1 auto;
-      width: auto;
     }
   }
 </style>
