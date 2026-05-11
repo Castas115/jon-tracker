@@ -75,7 +75,11 @@
   }
 
   const tasksToday = $derived(tasks.filter((t) => matches(t, focusedDate)));
-  const allDayTasks = $derived(tasksToday.filter((t) => !t.start_time));
+  const allDayTasks = $derived(
+    tasksToday
+      .filter((t) => !t.start_time)
+      .sort((a, b) => a.title.localeCompare(b.title))
+  );
   const timedTasks = $derived(
     tasksToday
       .filter((t) => t.start_time)
@@ -288,7 +292,7 @@
     font-size: 1rem;
     text-transform: capitalize;
   }
-  .nav strong.today { color: var(--accent); }
+  .nav strong.today { color: var(--today); }
   .today-btn {
     font-size: 0.75rem;
     padding: 0.3rem 0.6rem;

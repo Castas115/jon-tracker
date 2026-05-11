@@ -94,7 +94,9 @@
 
   function allDayTasksForDay(weekday: number): Task[] {
     const dateYMD = dates[weekday];
-    return tasks.filter((t) => matchesDay(t, weekday, dateYMD) && t.start_time === null);
+    return tasks
+      .filter((t) => matchesDay(t, weekday, dateYMD) && t.start_time === null)
+      .sort((a, b) => a.title.localeCompare(b.title));
   }
 
   function isDone(t: Task, dateYMD: string): boolean {
@@ -373,8 +375,8 @@
     text-transform: none;
     font-weight: 600;
   }
-  .day-head.today { color: var(--accent); }
-  .day-head.today .d-num { color: var(--accent); }
+  .day-head.today { color: var(--today); }
+  .day-head.today .d-num { color: var(--today); }
 
   .time-col {
     display: block;
@@ -437,7 +439,7 @@
     position: relative;
     border-left: 1px solid var(--border);
   }
-  .day-col.today { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  .day-col.today { background: color-mix(in srgb, var(--today) 8%, transparent); }
 
   .work-band {
     position: absolute;
@@ -458,6 +460,10 @@
   .hour-cell.focused {
     background: color-mix(in srgb, var(--accent) 25%, transparent);
     box-shadow: inset 0 0 0 2px var(--accent);
+  }
+  .day-col.today .hour-cell.focused {
+    background: color-mix(in srgb, var(--today) 25%, transparent);
+    box-shadow: inset 0 0 0 2px var(--today);
   }
 
   .block {

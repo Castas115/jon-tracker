@@ -51,15 +51,22 @@
   function tasksForDate(d: Date): Task[] {
     const wd = weekdayMonFirst(d);
     const k = ymd(d);
-    return tasks.filter((t) => {
-      if (t.task_type === 'recurring') return (t.weekdays ?? []).includes(wd);
-      if (t.task_type === 'single') return t.fixed_date === k;
-      if (t.task_type === 'birthday' && t.fixed_date) {
-        const bd = new Date(t.fixed_date + 'T00:00:00');
-        return bd.getMonth() === d.getMonth() && bd.getDate() === d.getDate();
-      }
-      return false;
-    });
+    return tasks
+      .filter((t) => {
+        if (t.task_type === 'recurring') return (t.weekdays ?? []).includes(wd);
+        if (t.task_type === 'single') return t.fixed_date === k;
+        if (t.task_type === 'birthday' && t.fixed_date) {
+          const bd = new Date(t.fixed_date + 'T00:00:00');
+          return bd.getMonth() === d.getMonth() && bd.getDate() === d.getDate();
+        }
+        return false;
+      })
+      .sort((a, b) => {
+        // Sort by start_time asc; tasks without a time fall to the bottom.
+        const ta = a.start_time ?? '99:99';
+        const tb = b.start_time ?? '99:99';
+        return ta.localeCompare(tb) || a.title.localeCompare(b.title);
+      });
   }
 
   function isCompleted(t: Task, dateYMD: string): boolean {
@@ -277,18 +284,27 @@
   .cell.out { opacity: 0.35; }
   .cell.has .num { font-weight: 600; }
   .cell.today {
-    border-color: var(--accent);
-    color: var(--accent);
+    border-color: var(--today);
+    color: var(--today);
   }
   .cell.selected {
     background: var(--accent);
     color: var(--accent-fg);
     border-color: var(--accent);
   }
+  .cell.today.selected {
+    background: var(--today);
+    color: var(--today-fg);
+    border-color: var(--today);
+  }
   .cell.focused {
     box-shadow: 0 0 0 2px var(--accent);
   }
+  .cell.today.focused {
+    box-shadow: 0 0 0 2px var(--today);
+  }
   .cell.selected .count { color: var(--accent-fg); }
+  .cell.today.selected .count { color: var(--today-fg); }
   .cell.all-done:not(.selected) { background: color-mix(in srgb, var(--accent) 14%, var(--bg-2)); }
 
   .num {
@@ -342,6 +358,8 @@
   }
   .cell.selected .item,
   .cell.selected .more { color: var(--accent-fg); }
+  .cell.today.selected .item,
+  .cell.today.selected .more { color: var(--today-fg); }
 
   .day-detail {
     margin-top: 0.5rem;

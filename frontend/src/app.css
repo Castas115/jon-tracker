@@ -18,6 +18,8 @@
   --accent-fg: #f5e8d8;
   --gcal: #5e7a9e;
   --gcal-fg: #e8eef5;
+  --today: #4f9a78;
+  --today-fg: #e6f4ed;
   --danger: #f87171;
   --done: #555555;
   --shadow: 0 0 0 1px rgba(156, 117, 70, 0.25);
@@ -35,6 +37,8 @@
   --accent-fg: #ffffff;
   --gcal: #4a6b94;
   --gcal-fg: #ffffff;
+  --today: #2f7a5b;
+  --today-fg: #ffffff;
   --danger: #dc2626;
   --done: #a1a1aa;
   --shadow: 0 0 0 1px rgba(107, 77, 41, 0.2);

@@ -216,16 +216,19 @@
       setCount('');
       return;
     }
-    // Alt+H / Alt+L cycle between views: day ↔ week ↔ month.
+    // Alt+H / Alt+L cycle between views: day → week → month → backlog.
+    const VIEW_ORDER: View[] = ['day', 'week', 'month', 'backlog'];
     if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'h' || e.key === 'H' || e.key === 'ArrowLeft')) {
       e.preventDefault();
-      view = view === 'month' ? 'week' : view === 'week' ? 'day' : 'day';
+      const i = VIEW_ORDER.indexOf(view);
+      view = VIEW_ORDER[Math.max(0, i - 1)];
       setCount('');
       return;
     }
     if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'l' || e.key === 'L' || e.key === 'ArrowRight')) {
       e.preventDefault();
-      view = view === 'day' ? 'week' : view === 'week' ? 'month' : 'month';
+      const i = VIEW_ORDER.indexOf(view);
+      view = VIEW_ORDER[Math.min(VIEW_ORDER.length - 1, i + 1)];
       setCount('');
       return;
     }
