@@ -34,11 +34,18 @@ export type CalendarEvent = {
   description: string | null;
 };
 
+export type UpdatePayload = Partial<CreatePayload>;
+
 export const api = {
   list: () => http<Task[]>('/tasks'),
   create: (payload: CreatePayload) =>
     http<Task>('/tasks', {
       method: 'POST',
+      body: JSON.stringify(payload)
+    }),
+  update: (id: number, payload: UpdatePayload) =>
+    http<Task>(`/tasks/${id}`, {
+      method: 'PATCH',
       body: JSON.stringify(payload)
     }),
   remove: (id: number) =>

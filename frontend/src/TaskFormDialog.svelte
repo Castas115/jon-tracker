@@ -84,20 +84,24 @@
       localError = 'Pick at least one day';
       return;
     }
-    if ((taskType === 'single' || taskType === 'birthday') && !fixedDate) {
+    if (taskType === 'birthday' && !fixedDate) {
       localError = 'Pick a date';
       return;
     }
 
     const isBirthday = taskType === 'birthday';
+    const isBacklog = taskType === 'single' && !fixedDate;
+    // Backlog items must be actionable, otherwise they can never be completed.
+    const finalIsTodo = isBirthday ? false : isBacklog ? true : isTodo;
+
     onSubmit({
       title: t,
       task_type: taskType,
       weekdays: taskType === 'recurring' ? weekdays : null,
-      fixed_date: taskType === 'single' || taskType === 'birthday' ? fixedDate : null,
-      start_time: isBirthday ? null : (start || null),
-      end_time: isBirthday ? null : (start && end ? end : null),
-      is_todo: isBirthday ? false : isTodo
+      fixed_date: taskType === 'single' ? (fixedDate || null) : taskType === 'birthday' ? fixedDate : null,
+      start_time: isBirthday || isBacklog ? null : (start || null),
+      end_time: isBirthday || isBacklog ? null : (start && end ? end : null),
+      is_todo: finalIsTodo
     });
   }
 
@@ -176,11 +180,18 @@
     {:else}
       <label class="field">
         <span>{taskType === 'birthday' ? 'Birth date' : 'Date'}</span>
-        <input type="date" bind:value={fixedDate} required />
+        <input
+          type="date"
+          bind:value={fixedDate}
+          required={taskType === 'birthday'}
+        />
       </label>
+      {#if taskType === 'single' && !fixedDate}
+        <p class="hint">No date → goes to the backlog. Always actionable (todo).</p>
+      {/if}
     {/if}
 
-    {#if taskType !== 'birthday'}
+    {#if taskType !== 'birthday' && !(taskType === 'single' && !fixedDate)}
       <div class="row">
         <label class="field">
           <span>Start</span>
@@ -198,7 +209,7 @@
       </label>
 
       <p class="hint">Leave times empty for an all-day task.</p>
-    {:else}
+    {:else if taskType === 'birthday'}
       <p class="hint">Birthdays repeat every year on the same month and day.</p>
     {/if}
 

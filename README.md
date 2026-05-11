@@ -109,11 +109,17 @@ The URL is gitignored (matches `.env`). Treat it like a password: anyone with th
 
 Every task has a `task_type` and an orthogonal `is_todo` flag.
 
-| `task_type` | Fields                                       | When it appears                        |
-| ----------- | -------------------------------------------- | -------------------------------------- |
-| `recurring` | `weekdays: int[]`, optional `start`/`end`    | Every matching weekday (Mon=0 … Sun=6) |
-| `single`    | `fixed_date`, optional `start`/`end`         | Only on that date                      |
-| `birthday`  | `fixed_date` (any year — month + day matter) | Yearly. No times. `is_todo=false`      |
+| `task_type` | Fields                                       | When it appears                                                   |
+| ----------- | -------------------------------------------- | ----------------------------------------------------------------- |
+| `recurring` | `weekdays: int[]`, optional `start`/`end`    | Every matching weekday (Mon=0 … Sun=6)                            |
+| `single`    | optional `fixed_date`, optional `start`/`end`| With date → on that date. Without date → **backlog** (`is_todo`). |
+| `birthday`  | `fixed_date` (any year — month + day matter) | Yearly. No times. `is_todo=false`                                 |
+
+Backlog items (undated singles):
+
+- Live in the **Backlog** view (`b` shortcut).
+- Marking one done records `completed_on = today` and removes it from the list.
+- Assigning a date PATCHes `fixed_date` → graduates to the calendar.
 
 `is_todo` (default `false`):
 

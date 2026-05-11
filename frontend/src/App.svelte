@@ -5,13 +5,14 @@
   import { isInputFocused, isPlainKey } from './lib/keys';
   import { type Task } from './lib/types';
   import { applyTheme, loadTheme, saveTheme, type Theme } from './lib/theme';
+  import BacklogView from './BacklogView.svelte';
   import DayView from './DayView.svelte';
   import HelpDialog from './HelpDialog.svelte';
   import MonthView from './MonthView.svelte';
   import WeekGrid from './WeekGrid.svelte';
   import TaskFormDialog, { type TaskFormValues } from './TaskFormDialog.svelte';
 
-  type View = 'day' | 'week' | 'month';
+  type View = 'day' | 'week' | 'month' | 'backlog';
 
   let tasks = $state<Task[]>([]);
   let events = $state<CalendarEvent[]>([]);
@@ -23,7 +24,7 @@
 
   function loadView(): View {
     const v = localStorage.getItem('tracker-view');
-    return v === 'day' || v === 'month' || v === 'week' ? v : 'week';
+    return v === 'day' || v === 'month' || v === 'week' || v === 'backlog' ? v : 'week';
   }
   $effect(() => {
     localStorage.setItem('tracker-view', view);
@@ -56,6 +57,32 @@
   // Vim-style count prefix: "3j" → repeat j three times.
   let pendingCount = $state('');
   let countTimer: number | null = null;
+
+  // `g` toggles between "today" and the previous focused position.
+  let previousFocusedDate: string | null = null;
+  function isAtCurrent(): boolean {
+    const today = new Date();
+    const fd = new Date(focusedDate + 'T00:00:00');
+    if (view === 'day') return ymd(today) === focusedDate;
+    if (view === 'week') return ymd(mondayOf(today)) === ymd(mondayOf(fd));
+    if (view === 'month') {
+      return today.getFullYear() === fd.getFullYear() && today.getMonth() === fd.getMonth();
+    }
+    return false;
+  }
+  function toggleToday() {
+    if (isAtCurrent() && previousFocusedDate) {
+      const restore = previousFocusedDate;
+      previousFocusedDate = focusedDate;
+      focusedDate = restore;
+      return;
+    }
+    previousFocusedDate = focusedDate;
+    const now = new Date();
+    focusedDate = ymd(now);
+    focusedWeekday = now.getDay() === 0 ? 6 : now.getDay() - 1;
+    focusedHour = Math.min(23, Math.max(6, now.getHours()));
+  }
   function setCount(next: string) {
     pendingCount = next;
     if (countTimer !== null) clearTimeout(countTimer);
@@ -145,6 +172,15 @@
     }
   }
 
+  async function assignDate(t: Task, dateYMD: string) {
+    try {
+      const updated = await api.update(t.id, { fixed_date: dateYMD });
+      tasks = tasks.map((x) => (x.id === t.id ? updated : x));
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    }
+  }
+
   function shiftDate(dateYMD: string, days: number): string {
     const d = new Date(dateYMD + 'T00:00:00');
     d.setDate(d.getDate() + days);
@@ -201,10 +237,13 @@
     }
     if (isPlainKey(e, 'g')) {
       e.preventDefault();
-      const now = new Date();
-      focusedDate = ymd(now);
-      focusedWeekday = now.getDay() === 0 ? 6 : now.getDay() - 1;
-      focusedHour = Math.min(23, Math.max(6, now.getHours()));
+      setCount('');
+      toggleToday();
+      return;
+    }
+    if (isPlainKey(e, 'b')) {
+      e.preventDefault();
+      view = 'backlog';
       setCount('');
       return;
     }
@@ -307,6 +346,16 @@
         >
           Month
         </button>
+        <button
+          class="tab"
+          class:active={view === 'backlog'}
+          role="tab"
+          aria-selected={view === 'backlog'}
+          onclick={() => (view = 'backlog')}
+          title="Backlog (b)"
+        >
+          Backlog
+        </button>
       </div>
       <div class="header-actions">
         {#if calendarConfigured}
@@ -348,6 +397,14 @@
 
   {#if loading}
     <p class="empty">Loading...</p>
+  {:else if view === 'backlog'}
+    <BacklogView
+      {tasks}
+      onToggle={toggle}
+      onAssignDate={assignDate}
+      onRemove={remove}
+      onCreate={() => openCreate({ task_type: 'single', fixed_date: '', is_todo: true })}
+    />
   {:else if view === 'month'}
     <MonthView
       {tasks}
@@ -401,7 +458,7 @@
   onClose={closeDialog}
 />
 
-<HelpDialog open={helpOpen} onClose={() => (helpOpen = false)} />
+<HelpDialog open={helpOpen} {view} onClose={() => (helpOpen = false)} />
 
 <style>
   .header-actions {
