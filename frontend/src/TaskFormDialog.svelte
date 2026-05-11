@@ -90,10 +90,14 @@
   function onDialogKey(e: KeyboardEvent) {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
     const target = e.target as HTMLElement;
-    // Don't hijack arrows inside text-editing fields.
+
+    // Keep native cursor stepping on date/time/number inputs (those use arrows
+    // to bump segments) and on multi-line text. Text inputs sacrifice cursor
+    // nav so arrows can switch tabs while typing the title — use Home/End or
+    // Shift+Arrow for selection inside the field.
     if (target instanceof HTMLInputElement) {
       const type = target.type;
-      if (type === 'text' || type === 'date' || type === 'time' || type === 'number') return;
+      if (type === 'date' || type === 'time' || type === 'number') return;
     }
     if (target instanceof HTMLTextAreaElement) return;
 
