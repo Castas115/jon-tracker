@@ -144,7 +144,12 @@
     flex-direction: column;
     gap: 0.75rem;
     max-width: 720px;
+    width: 100%;
     margin: 0 auto;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
   }
 
   header {

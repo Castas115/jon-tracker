@@ -230,7 +230,15 @@
 </section>
 
 <style>
-  .month { display: flex; flex-direction: column; gap: 0.75rem; }
+  .month {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
 
   .nav {
     display: flex;

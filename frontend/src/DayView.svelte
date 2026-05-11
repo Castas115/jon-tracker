@@ -505,7 +505,8 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    max-height: calc(100dvh - 140px);
+    flex: 1;
+    min-height: 0;
   }
 
   .nav {
