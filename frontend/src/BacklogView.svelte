@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ymd } from './lib/dates';
+  import { isoWeekNumber, mondayOf, ymd } from './lib/dates';
   import type { Task } from './lib/types';
 
   type Props = {
@@ -8,13 +8,13 @@
     onAssignDate: (task: Task, dateYMD: string) => void;
     onRemove: (task: Task) => void;
     onCreate: () => void;
+    onCreateGoal: () => void;
   };
 
-  const { tasks, onToggle, onAssignDate, onRemove, onCreate }: Props = $props();
+  const { tasks, onToggle, onAssignDate, onRemove, onCreate, onCreateGoal }: Props = $props();
 
-  // Backlog = singles with no fixed_date AND no completion yet (done items
-  // graduate out of view, per the design).
-  const items = $derived(
+  // Backlog = undated singles still pending (done singles graduate out).
+  const singles = $derived(
     tasks
       .filter(
         (t) =>
@@ -26,27 +26,89 @@
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
   );
 
+  const todayYMD = ymd(new Date());
+  const thisWeekISO = isoWeekNumber(new Date());
+
+  function countThisWeek(t: Task): number {
+    return t.completed_dates.filter((d) => {
+      const date = new Date(d + 'T00:00:00');
+      return isoWeekNumber(date) === thisWeekISO && date.getFullYear() === new Date().getFullYear();
+    }).length;
+  }
+
+  const goals = $derived(
+    tasks
+      .filter((t) => t.task_type === 'weekly_goal')
+      .sort((a, b) => a.title.localeCompare(b.title))
+  );
+
   function handleDate(t: Task, value: string) {
     if (!value) return;
     onAssignDate(t, value);
   }
 
   function complete(t: Task) {
-    onToggle(t, ymd(new Date()));
+    onToggle(t, todayYMD);
+  }
+
+  function isDoneToday(t: Task): boolean {
+    return t.completed_dates.includes(todayYMD);
   }
 </script>
 
 <section class="backlog">
   <header>
-    <h2>Backlog <span class="count">{items.length}</span></h2>
-    <button class="primary" type="button" onclick={onCreate}>+ Add</button>
+    <h2>Backlog <span class="count">{singles.length}</span></h2>
+    <div class="actions">
+      <button class="ghost" type="button" onclick={onCreateGoal}>+ Weekly goal</button>
+      <button class="primary" type="button" onclick={onCreate}>+ Add</button>
+    </div>
   </header>
 
-  {#if items.length === 0}
+  {#if goals.length > 0}
+    <h3 class="section-label">Weekly goals · ISO W{thisWeekISO}</h3>
+    <ul class="goals">
+      {#each goals as t (t.id)}
+        {@const done = countThisWeek(t)}
+        {@const target = t.target_per_week ?? 0}
+        {@const todayDone = isDoneToday(t)}
+        {@const hit = target > 0 && done >= target}
+        <li class:hit>
+          <button
+            class="goal-check"
+            type="button"
+            class:on={todayDone}
+            aria-label={todayDone ? 'Undo today' : 'Mark today'}
+            title={todayDone ? 'Undo today’s completion' : 'Add a completion for today'}
+            onclick={() => complete(t)}
+          >
+            {#if todayDone}✓{:else}＋{/if}
+          </button>
+          <span class="title">{t.title}</span>
+          <span class="progress" aria-label={`${done} of ${target} this week`}>
+            {#each Array(Math.max(target, done)) as _, i}
+              <span class="dot" class:filled={i < done} class:over={i >= target}></span>
+            {/each}
+            <span class="ratio">{done}/{target}</span>
+          </span>
+          <button
+            class="del"
+            type="button"
+            aria-label="Delete"
+            title="Delete"
+            onclick={() => onRemove(t)}
+          >×</button>
+        </li>
+      {/each}
+    </ul>
+  {/if}
+
+  <h3 class="section-label">Single backlog · {singles.length}</h3>
+  {#if singles.length === 0}
     <p class="empty">Nothing pending. Create undated singles to populate this list.</p>
   {:else}
     <ul>
-      {#each items as t (t.id)}
+      {#each singles as t (t.id)}
         <li>
           <button
             class="check"
@@ -90,6 +152,79 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
+  }
+
+  header .actions { display: flex; gap: 0.5rem; }
+  .ghost {
+    background: transparent;
+    color: var(--fg-muted);
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.9rem;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .ghost:hover { color: var(--fg); background: var(--bg-3); }
+
+  .section-label {
+    margin: 0.5rem 0 0;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--fg-muted);
+    font-weight: 600;
+  }
+
+  .goals li {
+    grid-template-columns: auto 1fr auto auto;
+  }
+  .goals li.hit {
+    border-color: color-mix(in srgb, var(--today) 70%, var(--border));
+  }
+
+  .goal-check {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0;
+  }
+  .goal-check.on {
+    background: var(--accent);
+    color: var(--accent-fg);
+  }
+  .goal-check:hover { box-shadow: var(--shadow); }
+
+  .progress {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: var(--fg-muted);
+    flex-wrap: nowrap;
+  }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+  }
+  .dot.filled {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .dot.over {
+    background: var(--today);
+    border-color: var(--today);
+  }
+  .ratio {
+    margin-left: 4px;
+    font-variant-numeric: tabular-nums;
   }
 
   h2 {

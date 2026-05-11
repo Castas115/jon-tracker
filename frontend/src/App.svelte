@@ -32,12 +32,13 @@
 
   type DialogInitial = {
     title?: string;
-    task_type?: 'recurring' | 'single' | 'birthday';
+    task_type?: 'recurring' | 'single' | 'birthday' | 'weekly_goal';
     weekdays?: number[];
     fixed_date?: string;
     start?: string;
     end?: string;
     is_todo?: boolean;
+    target_per_week?: number;
   };
 
   let dialogOpen = $state(false);
@@ -407,6 +408,7 @@
       onAssignDate={assignDate}
       onRemove={remove}
       onCreate={() => openCreate({ task_type: 'single', fixed_date: '', is_todo: true })}
+      onCreateGoal={() => openCreate({ task_type: 'weekly_goal', is_todo: true, target_per_week: 3 })}
     />
   {:else if view === 'month'}
     <MonthView

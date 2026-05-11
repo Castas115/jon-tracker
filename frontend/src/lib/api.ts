@@ -15,12 +15,13 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
 
 export type CreatePayload = {
   title: string;
-  task_type: 'recurring' | 'single' | 'birthday';
+  task_type: 'recurring' | 'single' | 'birthday' | 'weekly_goal';
   weekdays?: number[] | null;
   fixed_date?: string | null; // YYYY-MM-DD
   start_time?: string | null;
   end_time?: string | null;
   is_todo?: boolean;
+  target_per_week?: number | null;
 };
 
 export type CalendarEvent = {

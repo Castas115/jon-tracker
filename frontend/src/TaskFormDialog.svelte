@@ -9,6 +9,7 @@
     start_time: string | null;
     end_time: string | null;
     is_todo: boolean;
+    target_per_week: number | null;
   };
 
   type Initial = Partial<{
@@ -19,6 +20,7 @@
     start: string;
     end: string;
     is_todo: boolean;
+    target_per_week: number;
   }>;
 
   type Props = {
@@ -40,6 +42,7 @@
   let start = $state('');
   let end = $state('');
   let isTodo = $state(false);
+  let targetPerWeek = $state(3);
   let localError = $state<string | null>(null);
 
   // Track only `open` so typing in the form doesn't re-run this effect.
@@ -55,6 +58,7 @@
       start = snap.start ?? '';
       end = snap.end ?? '';
       isTodo = snap.is_todo ?? false;
+      targetPerWeek = snap.target_per_week ?? 3;
       localError = null;
       dialog.showModal();
       queueMicrotask(() => titleInput?.focus());
@@ -88,20 +92,26 @@
       localError = 'Pick a date';
       return;
     }
+    if (taskType === 'weekly_goal' && (!targetPerWeek || targetPerWeek < 1)) {
+      localError = 'Target must be at least 1';
+      return;
+    }
 
     const isBirthday = taskType === 'birthday';
     const isBacklog = taskType === 'single' && !fixedDate;
-    // Backlog items must be actionable, otherwise they can never be completed.
-    const finalIsTodo = isBirthday ? false : isBacklog ? true : isTodo;
+    const isWeekly = taskType === 'weekly_goal';
+    // Backlog and weekly_goal items must be actionable.
+    const finalIsTodo = isBirthday ? false : isBacklog || isWeekly ? true : isTodo;
 
     onSubmit({
       title: t,
       task_type: taskType,
       weekdays: taskType === 'recurring' ? weekdays : null,
       fixed_date: taskType === 'single' ? (fixedDate || null) : taskType === 'birthday' ? fixedDate : null,
-      start_time: isBirthday || isBacklog ? null : (start || null),
-      end_time: isBirthday || isBacklog ? null : (start && end ? end : null),
-      is_todo: finalIsTodo
+      start_time: isBirthday || isBacklog || isWeekly ? null : (start || null),
+      end_time: isBirthday || isBacklog || isWeekly ? null : (start && end ? end : null),
+      is_todo: finalIsTodo,
+      target_per_week: isWeekly ? targetPerWeek : null
     });
   }
 
@@ -134,6 +144,16 @@
         onclick={() => (taskType = 'recurring')}
       >
         Recurring
+      </button>
+      <button
+        type="button"
+        class="type-tab"
+        class:active={taskType === 'weekly_goal'}
+        role="tab"
+        aria-selected={taskType === 'weekly_goal'}
+        onclick={() => (taskType = 'weekly_goal')}
+      >
+        Weekly
       </button>
       <button
         type="button"
@@ -177,6 +197,21 @@
           {/each}
         </div>
       </div>
+    {:else if taskType === 'weekly_goal'}
+      <label class="field">
+        <span>Times per week</span>
+        <input
+          type="number"
+          min="1"
+          max="99"
+          bind:value={targetPerWeek}
+          required
+        />
+      </label>
+      <p class="hint">
+        Lives in the backlog. Each completion shows up on its day as
+        <em>{title || 'Task'} (k/{targetPerWeek})</em>.
+      </p>
     {:else}
       <label class="field">
         <span>{taskType === 'birthday' ? 'Birth date' : 'Date'}</span>
@@ -191,7 +226,7 @@
       {/if}
     {/if}
 
-    {#if taskType !== 'birthday' && !(taskType === 'single' && !fixedDate)}
+    {#if taskType === 'recurring' || (taskType === 'single' && fixedDate)}
       <div class="row">
         <label class="field">
           <span>Start</span>
@@ -203,12 +238,12 @@
         </label>
       </div>
 
+      <p class="hint">Leave times empty for an all-day task.</p>
+
       <label class="todo">
         <input type="checkbox" bind:checked={isTodo} />
         <span>To-do (show a checkbox to mark it done)</span>
       </label>
-
-      <p class="hint">Leave times empty for an all-day task.</p>
     {:else if taskType === 'birthday'}
       <p class="hint">Birthdays repeat every year on the same month and day.</p>
     {/if}
@@ -330,16 +365,30 @@
   .todo {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
+    gap: 0.65rem;
+    padding: 0.65rem 0.8rem;
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.9rem;
     color: var(--fg);
     cursor: pointer;
     user-select: none;
+    transition: border-color 100ms ease, background-color 100ms ease;
+  }
+  .todo:hover {
+    border-color: var(--accent);
+  }
+  .todo:has(input:checked) {
+    background: color-mix(in srgb, var(--accent) 18%, var(--bg-3));
+    border-color: var(--accent);
   }
   .todo input {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     accent-color: var(--accent);
+    flex: none;
+    cursor: pointer;
   }
 
   .hint {

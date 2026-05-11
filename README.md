@@ -114,6 +114,7 @@ Every task has a `task_type` and an orthogonal `is_todo` flag.
 | `recurring` | `weekdays: int[]`, optional `start`/`end`    | Every matching weekday (Mon=0 … Sun=6)                            |
 | `single`    | optional `fixed_date`, optional `start`/`end`| With date → on that date. Without date → **backlog** (`is_todo`). |
 | `birthday`  | `fixed_date` (any year — month + day matter) | Yearly. No times. `is_todo=false`                                 |
+| `weekly_goal` | `target_per_week: int`                     | Lives in backlog. Each completion shows on its day as `(k/target)`. |
 
 Backlog items (undated singles):
 

@@ -10,6 +10,7 @@
   } from './lib/dates';
   import { type CalendarEvent } from './lib/api';
   import { WEEKDAY_LABELS, type Task } from './lib/types';
+  import { weeklyGoalLabel } from './lib/weeklyGoal';
 
   type Props = {
     tasks: Task[];
@@ -58,6 +59,9 @@
         if (t.task_type === 'birthday' && t.fixed_date) {
           const bd = new Date(t.fixed_date + 'T00:00:00');
           return bd.getMonth() === d.getMonth() && bd.getDate() === d.getDate();
+        }
+        if (t.task_type === 'weekly_goal') {
+          return t.completed_dates.includes(k);
         }
         return false;
       })
@@ -129,16 +133,16 @@
       {@const inMonth = d.getMonth() === month}
       {@const dayTasks = tasksForDate(d)}
       {@const dayEvents = eventsForDate(d)}
-      {@const todos = dayTasks.filter((t) => t.is_todo)}
+      {@const todos = dayTasks.filter((t) => t.is_todo && t.task_type !== 'weekly_goal')}
       {@const doneCount = todos.filter((t) => isCompleted(t, k)).length}
       {@const total = todos.length}
       {@const items = [
         ...dayTasks.map((t) => ({
           kind: t.task_type === 'birthday' ? 'birthday-task' : 'task',
-          title: t.title,
+          title: t.task_type === 'weekly_goal' ? weeklyGoalLabel(t, k) : t.title,
           time: t.start_time ?? '',
           sortKey: t.start_time ?? '',
-          done: t.is_todo && isCompleted(t, k)
+          done: t.is_todo && t.task_type !== 'weekly_goal' && isCompleted(t, k)
         })),
         ...dayEvents.map((e) => ({
           kind: e.kind === 'birthday' ? 'birthday-event' : 'event',
@@ -190,9 +194,10 @@
     {:else}
       <ul>
         {#each selectedTasks as t (t.id)}
-          {@const done = t.is_todo && isCompleted(t, selectedYMD)}
+          {@const done = t.is_todo && t.task_type !== 'weekly_goal' && isCompleted(t, selectedYMD)}
+          {@const label = t.task_type === 'weekly_goal' ? weeklyGoalLabel(t, selectedYMD) : t.title}
           <li class:done>
-            {#if t.is_todo}
+            {#if t.is_todo && t.task_type !== 'weekly_goal'}
               <label>
                 <input
                   type="checkbox"
@@ -200,12 +205,12 @@
                   onchange={() => onToggle(t, selectedYMD)}
                 />
                 <span>
-                  {t.task_type === 'birthday' ? '🎂 ' : ''}{t.title}
+                  {t.task_type === 'birthday' ? '🎂 ' : ''}{label}
                 </span>
               </label>
             {:else}
               <span class="info">
-                {t.task_type === 'birthday' ? '🎂 ' : ''}{t.title}
+                {t.task_type === 'birthday' ? '🎂 ' : ''}{label}
               </span>
             {/if}
           </li>

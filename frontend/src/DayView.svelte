@@ -2,6 +2,7 @@
   import { type CalendarEvent } from './lib/api';
   import { MONTH_LABELS, isToday, isoWeekNumber, weekdayMonFirst, ymd } from './lib/dates';
   import { WEEKDAY_LABELS_LONG, type Task } from './lib/types';
+  import { weeklyGoalLabel } from './lib/weeklyGoal';
 
   type Props = {
     tasks: Task[];
@@ -71,7 +72,15 @@
       const bd = new Date(t.fixed_date + 'T00:00:00');
       return bd.getMonth() === day.getMonth() && bd.getDate() === day.getDate();
     }
+    if (t.task_type === 'weekly_goal') {
+      return t.completed_dates.includes(k);
+    }
     return false;
+  }
+
+  function displayTitle(t: Task, dateYMD: string): string {
+    if (t.task_type === 'weekly_goal') return weeklyGoalLabel(t, dateYMD);
+    return t.title;
   }
 
   const tasksToday = $derived(tasks.filter((t) => matches(t, focusedDate)));
@@ -166,7 +175,7 @@
     <span class="time-col tag">All day</span>
     <div class="all-day-cell">
       {#each allDayTasks as t (t.id)}
-        {@const done = t.is_todo && isDone(t, focusedDate)}
+        {@const done = t.is_todo && t.task_type !== 'weekly_goal' && isDone(t, focusedDate)}
         <button
           class="all-day-block"
           class:done
@@ -178,9 +187,9 @@
             e.preventDefault();
             onRemove(t);
           }}
-          title={`${t.task_type === 'birthday' ? '🎂 ' : ''}${t.title}`}
+          title={`${t.task_type === 'birthday' ? '🎂 ' : ''}${displayTitle(t, focusedDate)}`}
         >
-          {t.task_type === 'birthday' ? '🎂 ' : ''}{t.title}
+          {t.task_type === 'birthday' ? '🎂 ' : ''}{displayTitle(t, focusedDate)}
         </button>
       {/each}
       {#each allDayEvs as ev (ev.id)}

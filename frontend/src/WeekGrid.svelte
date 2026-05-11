@@ -2,6 +2,7 @@
   import { type CalendarEvent } from './lib/api';
   import { MONTH_LABELS, isoWeekNumber, weekDatesFromMonday, ymd } from './lib/dates';
   import { WEEKDAY_LABELS, type Task } from './lib/types';
+  import { weeklyGoalLabel } from './lib/weeklyGoal';
 
   type Props = {
     tasks: Task[];
@@ -82,7 +83,15 @@
       const bd = new Date(t.fixed_date + 'T00:00:00');
       return bd.getMonth() === d.getMonth() && bd.getDate() === d.getDate();
     }
+    if (t.task_type === 'weekly_goal') {
+      return t.completed_dates.includes(dateYMD);
+    }
     return false;
+  }
+
+  function displayTitle(t: Task, dateYMD: string): string {
+    if (t.task_type === 'weekly_goal') return weeklyGoalLabel(t, dateYMD);
+    return t.title;
   }
 
   function timedTasksForDay(weekday: number): Task[] {
@@ -225,7 +234,7 @@
       <div class="all-day-cell">
         {#each items as t (t.id)}
           {@const dateYMD = dates[weekday]}
-          {@const done = t.is_todo && isDone(t, dateYMD)}
+          {@const done = t.is_todo && t.task_type !== 'weekly_goal' && isDone(t, dateYMD)}
           <button
             class="all-day-block"
             class:done
@@ -239,7 +248,7 @@
             }}
             title={`${t.task_type === 'birthday' ? '🎂 ' : ''}${t.title}${t.is_todo ? ' (click: toggle · right-click: delete)' : ' (right-click: delete)'}`}
           >
-            {t.task_type === 'birthday' ? '🎂 ' : ''}{t.title}
+            {t.task_type === 'birthday' ? '🎂 ' : ''}{displayTitle(t, dateYMD)}
           </button>
         {/each}
         {#each evs as ev (ev.id)}
@@ -296,7 +305,7 @@
 
         {#each timedTasksForDay(weekday) as t (t.id)}
           {@const dateYMD = dates[weekday]}
-          {@const done = t.is_todo && isDone(t, dateYMD)}
+          {@const done = t.is_todo && t.task_type !== 'weekly_goal' && isDone(t, dateYMD)}
           <button
             class="block"
             class:done
