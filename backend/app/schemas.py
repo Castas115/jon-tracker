@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, model_validator
 
 TimeStr = Annotated[str, Field(pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")]
 Weekday = Annotated[int, Field(ge=0, le=6)]
-TaskType = Literal["recurring", "fixed", "birthday"]
+TaskType = Literal["recurring", "single", "birthday"]
 
 
 def _validate(model):
@@ -20,11 +20,11 @@ def _validate(model):
             raise ValueError("recurring tasks need at least one weekday")
         if model.fixed_date is not None:
             raise ValueError("recurring tasks must not set fixed_date")
-    elif model.task_type == "fixed":
+    elif model.task_type == "single":
         if model.fixed_date is None:
-            raise ValueError("fixed tasks need fixed_date")
+            raise ValueError("single tasks need fixed_date")
         if model.weekdays:
-            raise ValueError("fixed tasks must not set weekdays")
+            raise ValueError("single tasks must not set weekdays")
     elif model.task_type == "birthday":
         if model.fixed_date is None:
             raise ValueError("birthday tasks need fixed_date (any year, month+day matter)")
@@ -32,6 +32,8 @@ def _validate(model):
             raise ValueError("birthday tasks must not set weekdays")
         if model.start_time or model.end_time:
             raise ValueError("birthday tasks must not have times")
+        if getattr(model, "is_todo", False):
+            raise ValueError("birthday tasks cannot be todos")
     return model
 
 
@@ -42,6 +44,7 @@ class TaskCreate(BaseModel):
     fixed_date: date | None = None
     start_time: TimeStr | None = None
     end_time: TimeStr | None = None
+    is_todo: bool = False
 
     @model_validator(mode="after")
     def _check(self):
@@ -55,6 +58,7 @@ class TaskUpdate(BaseModel):
     fixed_date: date | None = None
     start_time: TimeStr | None = None
     end_time: TimeStr | None = None
+    is_todo: bool | None = None
 
 
 class TaskRead(BaseModel):
@@ -65,6 +69,7 @@ class TaskRead(BaseModel):
     fixed_date: date | None
     start_time: str | None
     end_time: str | None
+    is_todo: bool
     created_at: datetime
     completed_dates: list[date]
 

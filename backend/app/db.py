@@ -63,9 +63,16 @@ def ensure_schema(eng: Engine) -> None:
                 )
         if "fixed_date" not in existing:
             conn.execute(text("ALTER TABLE tasks ADD COLUMN fixed_date DATE"))
+        if "is_todo" not in existing:
+            conn.execute(
+                text("ALTER TABLE tasks ADD COLUMN is_todo BOOLEAN NOT NULL DEFAULT 0")
+            )
+
+        # Rename legacy task_type='fixed' to 'single' (terminology change).
+        conn.execute(text("UPDATE tasks SET task_type = 'single' WHERE task_type = 'fixed'"))
 
         # Legacy single-weekday column. Kept around through a few migrations
-        # but the NOT NULL constraint blocks fixed/birthday inserts. Drop it
+        # but the NOT NULL constraint blocks single/birthday inserts. Drop it
         # if SQLite supports it (3.35+).
         if "weekday" in existing:
             try:

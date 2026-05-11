@@ -18,6 +18,7 @@ def _to_read(task: Task) -> TaskRead:
         fixed_date=task.fixed_date,
         start_time=task.start_time,
         end_time=task.end_time,
+        is_todo=task.is_todo,
         created_at=task.created_at,
         completed_dates=sorted(c.completed_on for c in task.completions),
     )
@@ -38,6 +39,7 @@ def create_task(payload: TaskCreate, db: Session = Depends(get_db)) -> TaskRead:
         fixed_date=payload.fixed_date,
         start_time=payload.start_time,
         end_time=payload.end_time,
+        is_todo=payload.is_todo,
     )
     db.add(task)
     db.commit()
