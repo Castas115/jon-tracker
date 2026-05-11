@@ -21,10 +21,12 @@ def _validate(model):
         if model.fixed_date is not None:
             raise ValueError("recurring tasks must not set fixed_date")
     elif model.task_type == "single":
-        if model.fixed_date is None:
-            raise ValueError("single tasks need fixed_date")
         if model.weekdays:
             raise ValueError("single tasks must not set weekdays")
+        # fixed_date may be None → backlog item. Must be actionable, else it
+        # can never appear or be completed.
+        if model.fixed_date is None and not getattr(model, "is_todo", False):
+            raise ValueError("single tasks without fixed_date must have is_todo=true")
     elif model.task_type == "birthday":
         if model.fixed_date is None:
             raise ValueError("birthday tasks need fixed_date (any year, month+day matter)")
