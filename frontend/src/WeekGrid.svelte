@@ -267,6 +267,7 @@
     {/each}
   </div>
 
+  <div class="body-scroll">
   <div class="body" style:--cell={`${CELL_PX}px`} style:height={`${gridHeight}px`}>
     <div class="hours">
       {#each HOURS as h}
@@ -340,6 +341,7 @@
       </div>
     {/each}
   </div>
+  </div>
 </section>
 
 <style>
@@ -348,6 +350,14 @@
     border-radius: var(--radius);
     background: var(--bg-2);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 140px);
+  }
+  .body-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   .week-label {

@@ -45,9 +45,31 @@
     const n = new Date();
     return n.getHours() * 60 + n.getMinutes();
   }
+
+  let bodyScroll: HTMLDivElement | null = $state(null);
+  function centerOnNow() {
+    if (!bodyScroll) return;
+    const target = ((currentMinutes() - HOUR_START * 60) / 60) * CELL_PX - bodyScroll.clientHeight / 2;
+    bodyScroll.scrollTo({ top: Math.max(0, target), behavior: 'auto' });
+  }
+
   onMount(() => {
     const id = window.setInterval(() => (nowMin = currentMinutes()), 60_000);
+    // Wait one frame so the layout settles, then center on the current hour.
+    requestAnimationFrame(centerOnNow);
     return () => clearInterval(id);
+  });
+
+  // When the user navigates to a new day, re-center if it's today; otherwise
+  // pin to the top so they don't see a mid-day scroll position from earlier.
+  $effect(() => {
+    if (!bodyScroll) return;
+    void focusedDate;
+    if (isToday(day)) {
+      requestAnimationFrame(centerOnNow);
+    } else {
+      bodyScroll.scrollTo({ top: 0, behavior: 'auto' });
+    }
   });
 
   function shift(delta: number) {
@@ -318,6 +340,7 @@
   </div>
 
   <div class="main">
+    <div class="body-scroll" bind:this={bodyScroll}>
     <div class="body" style:--cell="{CELL_PX}px" style:height="{gridHeight}px">
       <div class="hours">
         {#each HOURS as h}
@@ -394,6 +417,7 @@
           <div class="now-line" style:top="{nowTop}px" aria-hidden="true"></div>
         {/if}
       </div>
+    </div>
     </div>
 
     <aside class="sidebar">
@@ -479,6 +503,9 @@
     border-radius: var(--radius);
     background: var(--bg-2);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 140px);
   }
 
   .nav {
@@ -581,6 +608,13 @@
   .main {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 320px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .body-scroll {
+    overflow-y: auto;
+    min-height: 0;
   }
 
   .body {
@@ -689,8 +723,8 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    max-height: calc(18 * var(--cell, 56px));
     overflow-y: auto;
+    min-height: 0;
   }
   .panel {
     background: var(--bg);
@@ -798,13 +832,19 @@
   }
 
   @media (max-width: 960px) {
+    .day-wrap {
+      max-height: none;
+    }
     .main {
       grid-template-columns: 1fr;
+    }
+    .body-scroll {
+      overflow-y: visible;
     }
     .sidebar {
       border-left: none;
       border-top: 1px solid var(--border);
-      max-height: none;
+      overflow-y: visible;
     }
   }
 </style>
