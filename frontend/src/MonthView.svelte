@@ -11,6 +11,7 @@
   import { type CalendarEvent } from './lib/api';
   import { WEEKDAY_LABELS, type Task } from './lib/types';
   import { weeklyGoalLabel } from './lib/weeklyGoal';
+  import TodaySidebar from './TodaySidebar.svelte';
 
   type Props = {
     tasks: Task[];
@@ -108,9 +109,6 @@
     selectedYMD = ymd(t);
   }
 
-  const selectedDate = $derived(new Date(selectedYMD + 'T00:00:00'));
-  const selectedTasks = $derived(tasksForDate(selectedDate));
-  const selectedEvents = $derived(eventsForDate(selectedDate));
 </script>
 
 <section class="month">
@@ -121,6 +119,8 @@
     <button class="icon today-btn" type="button" onclick={goToday}>Today</button>
   </div>
 
+  <div class="main">
+  <div class="cal">
   <div class="dow">
     {#each WEEKDAY_LABELS as label}
       <span>{label}</span>
@@ -183,50 +183,10 @@
       </button>
     {/each}
   </div>
+  </div>
 
-  <article class="day-detail">
-    <h3>
-      {selectedDate.getDate()} {MONTH_LABELS[selectedDate.getMonth()]}
-      {#if isToday(selectedDate)}<em> · today</em>{/if}
-    </h3>
-    {#if selectedTasks.length === 0 && selectedEvents.length === 0}
-      <p class="empty">Nothing this day</p>
-    {:else}
-      <ul>
-        {#each selectedTasks as t (t.id)}
-          {@const done = t.is_todo && t.task_type !== 'weekly_goal' && isCompleted(t, selectedYMD)}
-          {@const label = t.task_type === 'weekly_goal' ? weeklyGoalLabel(t, selectedYMD) : t.title}
-          <li class:done>
-            {#if t.is_todo && t.task_type !== 'weekly_goal'}
-              <label>
-                <input
-                  type="checkbox"
-                  checked={done}
-                  onchange={() => onToggle(t, selectedYMD)}
-                />
-                <span>
-                  {t.task_type === 'birthday' ? '🎂 ' : ''}{label}
-                </span>
-              </label>
-            {:else}
-              <span class="info">
-                {t.task_type === 'birthday' ? '🎂 ' : ''}{label}
-              </span>
-            {/if}
-          </li>
-        {/each}
-        {#each selectedEvents as ev (ev.id)}
-          <li class="event-row" class:birthday={ev.kind === 'birthday'}>
-            <span class="ev-time">{fmtTime(ev) || 'all day'}</span>
-            <span class="ev-title">
-              {ev.kind === 'birthday' ? '🎂 ' : ''}{ev.title}
-            </span>
-            <span class="ev-tag" aria-label="Google">G</span>
-          </li>
-        {/each}
-      </ul>
-    {/if}
-  </article>
+  <TodaySidebar tasks={tasks} onToggle={onToggle} />
+  </div>
 </section>
 
 <style>
@@ -235,6 +195,21 @@
     flex-direction: column;
     gap: 0.75rem;
     flex: 1;
+    min-height: 0;
+  }
+
+  .main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 0.75rem;
+    flex: 1;
+    min-height: 0;
+  }
+  .cal {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
     min-height: 0;
     overflow-y: auto;
     padding-right: 4px;
@@ -373,85 +348,11 @@
   .cell.today.selected .item,
   .cell.today.selected .more { color: var(--today-fg); }
 
-  .day-detail {
-    margin-top: 0.5rem;
-  }
-  .day-detail h3 {
-    margin: 0 0 0.5rem;
-    font-size: 0.95rem;
-    font-weight: 600;
-    text-transform: capitalize;
-  }
-  .day-detail h3 em {
-    color: var(--accent);
-    font-style: normal;
-    font-weight: 400;
-  }
-  .day-detail .empty {
-    color: var(--fg-muted);
-    font-size: 0.9rem;
-    margin: 0.5rem 0;
-  }
-  .day-detail ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-  .day-detail li {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .day-detail li:last-child { border-bottom: none; }
-  .day-detail li label {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    cursor: pointer;
-    user-select: none;
-  }
-  .day-detail li input[type='checkbox'] {
-    width: 22px;
-    height: 22px;
-    accent-color: var(--accent);
-    flex: none;
-  }
-  .day-detail li.done span {
-    color: var(--done);
-    text-decoration: line-through;
-  }
-
-  .event-row {
-    color: var(--gcal);
-    gap: 0.5rem;
-  }
-  .event-row.birthday { color: #c97a8a; }
-  .ev-time {
-    font-variant-numeric: tabular-nums;
-    font-size: 0.78rem;
-    color: var(--fg-muted);
-    flex: none;
-    width: 4rem;
-  }
-  .ev-title { flex: 1; }
-  .ev-tag {
-    font-size: 0.6rem;
-    font-weight: 700;
-    padding: 1px 5px;
-    border-radius: 3px;
-    background: color-mix(in srgb, var(--gcal) 30%, transparent);
-    color: var(--gcal);
-    letter-spacing: 0.04em;
-  }
-  .event-row.birthday .ev-tag {
-    background: color-mix(in srgb, #c97a8a 30%, transparent);
-    color: #c97a8a;
+  @media (max-width: 960px) {
+    .main {
+      grid-template-columns: 1fr;
+    }
+    .cal { overflow-y: visible; }
   }
 
   @media (max-width: 480px) {

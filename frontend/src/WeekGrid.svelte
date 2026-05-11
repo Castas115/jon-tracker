@@ -3,6 +3,7 @@
   import { MONTH_LABELS, isoWeekNumber, weekDatesFromMonday, ymd } from './lib/dates';
   import { WEEKDAY_LABELS, type Task } from './lib/types';
   import { weeklyGoalLabel } from './lib/weeklyGoal';
+  import TodaySidebar from './TodaySidebar.svelte';
 
   type Props = {
     tasks: Task[];
@@ -216,6 +217,8 @@
 
 <section class="grid-wrap">
   <div class="week-label"><strong>{weekLabel}</strong></div>
+  <div class="main">
+  <div class="grid-area">
   <div class="header-row">
     <span class="time-col"></span>
     {#each WEEKDAY_LABELS as label, i}
@@ -342,6 +345,9 @@
     {/each}
   </div>
   </div>
+  </div>
+  <TodaySidebar tasks={tasks} onToggle={onToggle} />
+  </div>
 </section>
 
 <style>
@@ -353,6 +359,18 @@
     display: flex;
     flex-direction: column;
     flex: 1;
+    min-height: 0;
+  }
+  .main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    flex: 1;
+    min-height: 0;
+  }
+  .grid-area {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
     min-height: 0;
   }
   .body-scroll {
@@ -567,6 +585,10 @@
     font-size: 0.65rem;
     opacity: 0.85;
     line-height: 1;
+  }
+
+  @media (max-width: 960px) {
+    .main { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 600px) {
