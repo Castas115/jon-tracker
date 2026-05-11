@@ -86,6 +86,15 @@ export function addDaysYMD(dateYMD: string, days: number): string {
   return ymd(d);
 }
 
+/** ISO 8601 week number (1..53). Week 1 contains the year's first Thursday. */
+export function isoWeekNumber(d: Date): number {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (t.getUTCDay() + 6) % 7; // Mon=0..Sun=6
+  t.setUTCDate(t.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+  return 1 + Math.round((t.getTime() - firstThursday.getTime()) / (7 * 24 * 3600 * 1000));
+}
+
 export function addMonthsYMD(dateYMD: string, delta: number): string {
   const d = new Date(dateYMD + 'T00:00:00');
   const day = d.getDate();

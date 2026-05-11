@@ -3,6 +3,7 @@
     MONTH_LABELS,
     addMonths,
     isToday,
+    isoWeekNumber,
     monthGrid,
     weekdayMonFirst,
     ymd
@@ -43,7 +44,9 @@
   });
 
   const grid = $derived(monthGrid(year, month));
-  const monthLabel = $derived(`${MONTH_LABELS[month]} ${year}`);
+  const monthLabel = $derived(
+    `${MONTH_LABELS[month]} ${year} · W${isoWeekNumber(new Date(focusedDate + 'T00:00:00'))}`
+  );
 
   function tasksForDate(d: Date): Task[] {
     const wd = weekdayMonFirst(d);

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { type CalendarEvent } from './lib/api';
-  import { weekDatesFromMonday, ymd } from './lib/dates';
+  import { MONTH_LABELS, isoWeekNumber, weekDatesFromMonday, ymd } from './lib/dates';
   import { WEEKDAY_LABELS, type Task } from './lib/types';
 
   type Props = {
@@ -38,6 +38,22 @@
   const dates = $derived(weekDatesFromMonday(new Date(weekStartYMD + 'T00:00:00')));
   const todayYMD = ymd(new Date());
   const today = $derived(dates.indexOf(todayYMD));
+  const weekLabel = $derived.by(() => {
+    const mon = new Date(dates[0] + 'T00:00:00');
+    const sun = new Date(dates[6] + 'T00:00:00');
+    const w = isoWeekNumber(mon);
+    const sameMonth = mon.getMonth() === sun.getMonth();
+    const sameYear = mon.getFullYear() === sun.getFullYear();
+    const monthMon = MONTH_LABELS[mon.getMonth()].slice(0, 3);
+    const monthSun = MONTH_LABELS[sun.getMonth()].slice(0, 3);
+    if (sameMonth && sameYear) {
+      return `W${w} · ${mon.getDate()}–${sun.getDate()} ${monthMon} ${sun.getFullYear()}`;
+    }
+    if (sameYear) {
+      return `W${w} · ${mon.getDate()} ${monthMon} – ${sun.getDate()} ${monthSun} ${sun.getFullYear()}`;
+    }
+    return `W${w} · ${mon.getDate()} ${monthMon} ${mon.getFullYear()} – ${sun.getDate()} ${monthSun} ${sun.getFullYear()}`;
+  });
 
   function toMinutes(t: string | null): number | null {
     if (!t) return null;
@@ -188,6 +204,7 @@
 </script>
 
 <section class="grid-wrap">
+  <div class="week-label"><strong>{weekLabel}</strong></div>
   <div class="header-row">
     <span class="time-col"></span>
     {#each WEEKDAY_LABELS as label, i}
@@ -318,6 +335,15 @@
     border-radius: var(--radius);
     background: var(--bg-2);
     overflow: hidden;
+  }
+
+  .week-label {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--fg);
+    background: var(--bg-2);
   }
 
   .header-row, .all-day {

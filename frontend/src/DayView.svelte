@@ -1,6 +1,6 @@
 <script lang="ts">
   import { type CalendarEvent } from './lib/api';
-  import { MONTH_LABELS, isToday, weekdayMonFirst, ymd } from './lib/dates';
+  import { MONTH_LABELS, isToday, isoWeekNumber, weekdayMonFirst, ymd } from './lib/dates';
   import { WEEKDAY_LABELS_LONG, type Task } from './lib/types';
 
   type Props = {
@@ -34,7 +34,7 @@
   const day = $derived(new Date(focusedDate + 'T00:00:00'));
   const weekday = $derived(weekdayMonFirst(day));
   const dayLabel = $derived(
-    `${WEEKDAY_LABELS_LONG[weekday]}, ${day.getDate()} ${MONTH_LABELS[day.getMonth()]}`
+    `${WEEKDAY_LABELS_LONG[weekday]}, ${day.getDate()} ${MONTH_LABELS[day.getMonth()]} · W${isoWeekNumber(day)}`
   );
 
   function shift(delta: number) {
