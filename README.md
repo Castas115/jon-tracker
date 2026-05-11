@@ -100,9 +100,26 @@ The URL is gitignored (matches `.env`). Treat it like a password: anyone with th
 - [x] Installable PWA
 - [x] Google Calendar events overlay (read-only via ICS feed)
 - [x] Birthdays (local + detected from feed) with 🎂
-- [x] Recurring (multi-day) and fixed-date task types
+- [x] Recurring, single-date and birthday task types
+- [x] To-do flag (checkbox + completion only on actionable tasks)
 - [x] Vim-style keyboard nav (hjkl + count prefix)
 - [ ] HTTPS via `tailscale serve`
+
+## Task model
+
+Every task has a `task_type` and an orthogonal `is_todo` flag.
+
+| `task_type` | Fields                                       | When it appears                        |
+| ----------- | -------------------------------------------- | -------------------------------------- |
+| `recurring` | `weekdays: int[]`, optional `start`/`end`    | Every matching weekday (Mon=0 … Sun=6) |
+| `single`    | `fixed_date`, optional `start`/`end`         | Only on that date                      |
+| `birthday`  | `fixed_date` (any year — month + day matter) | Yearly. No times. `is_todo=false`      |
+
+`is_todo` (default `false`):
+
+- `true` → renders a checkbox. Completion tracked per-date (`task_completions` rows).
+- `false` → display-only block. No checkbox, no done state.
+- Always `false` for `birthday`.
 
 ## Backlog
 
