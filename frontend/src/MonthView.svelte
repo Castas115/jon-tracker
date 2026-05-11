@@ -259,7 +259,6 @@
     letter-spacing: 0.06em;
     color: var(--fg-muted);
     text-align: center;
-    padding: 0 2px;
   }
 
   .grid {
