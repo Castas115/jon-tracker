@@ -19,6 +19,7 @@ def _to_read(task: Task) -> TaskRead:
         start_time=task.start_time,
         end_time=task.end_time,
         is_todo=task.is_todo,
+        target_per_week=task.target_per_week,
         created_at=task.created_at,
         completed_dates=sorted(c.completed_on for c in task.completions),
     )
@@ -40,6 +41,7 @@ def create_task(payload: TaskCreate, db: Session = Depends(get_db)) -> TaskRead:
         start_time=payload.start_time,
         end_time=payload.end_time,
         is_todo=payload.is_todo,
+        target_per_week=payload.target_per_week,
     )
     db.add(task)
     db.commit()

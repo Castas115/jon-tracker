@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, String
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -24,6 +24,8 @@ class Task(Base):
     end_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
     # When true the task is actionable (renders a checkbox). Always false for birthdays.
     is_todo: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Weekly-goal tasks: how many completions per ISO week count as the goal.
+    target_per_week: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
     completions: Mapped[list["TaskCompletion"]] = relationship(

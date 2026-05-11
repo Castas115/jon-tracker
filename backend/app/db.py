@@ -67,6 +67,8 @@ def ensure_schema(eng: Engine) -> None:
             conn.execute(
                 text("ALTER TABLE tasks ADD COLUMN is_todo BOOLEAN NOT NULL DEFAULT 0")
             )
+        if "target_per_week" not in existing:
+            conn.execute(text("ALTER TABLE tasks ADD COLUMN target_per_week INTEGER"))
 
         # Rename legacy task_type='fixed' to 'single' (terminology change).
         conn.execute(text("UPDATE tasks SET task_type = 'single' WHERE task_type = 'fixed'"))
