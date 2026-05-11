@@ -29,8 +29,8 @@
     { keys: ['k', '↑'], desc: 'Previous hour / week row' },
     { keys: ['⇧H'], desc: 'Prev week (day/week) · prev month (month)' },
     { keys: ['⇧L'], desc: 'Next week (day/week) · next month (month)' },
+    { keys: ['g'], desc: 'Jump to today / current week / current month' },
     { keys: ['Space'], desc: 'Toggle completion on focused task' },
-    { keys: ['T'], desc: 'Jump to today' },
     { keys: ['?'], desc: 'Show this help' },
     { keys: ['Esc'], desc: 'Close dialog / clear selection' }
   ];

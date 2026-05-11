@@ -8,6 +8,7 @@
     fixed_date: string | null;
     start_time: string | null;
     end_time: string | null;
+    is_todo: boolean;
   };
 
   type Initial = Partial<{
@@ -17,6 +18,7 @@
     fixed_date: string;
     start: string;
     end: string;
+    is_todo: boolean;
   }>;
 
   type Props = {
@@ -37,6 +39,7 @@
   let fixedDate = $state('');
   let start = $state('');
   let end = $state('');
+  let isTodo = $state(false);
   let localError = $state<string | null>(null);
 
   // Track only `open` so typing in the form doesn't re-run this effect.
@@ -51,6 +54,7 @@
       fixedDate = snap.fixed_date ?? '';
       start = snap.start ?? '';
       end = snap.end ?? '';
+      isTodo = snap.is_todo ?? false;
       localError = null;
       dialog.showModal();
       queueMicrotask(() => titleInput?.focus());
@@ -80,7 +84,7 @@
       localError = 'Pick at least one day';
       return;
     }
-    if ((taskType === 'fixed' || taskType === 'birthday') && !fixedDate) {
+    if ((taskType === 'single' || taskType === 'birthday') && !fixedDate) {
       localError = 'Pick a date';
       return;
     }
@@ -90,9 +94,10 @@
       title: t,
       task_type: taskType,
       weekdays: taskType === 'recurring' ? weekdays : null,
-      fixed_date: taskType === 'fixed' || taskType === 'birthday' ? fixedDate : null,
+      fixed_date: taskType === 'single' || taskType === 'birthday' ? fixedDate : null,
       start_time: isBirthday ? null : (start || null),
-      end_time: isBirthday ? null : (start && end ? end : null)
+      end_time: isBirthday ? null : (start && end ? end : null),
+      is_todo: isBirthday ? false : isTodo
     });
   }
 
@@ -109,12 +114,12 @@
       <button
         type="button"
         class="type-tab"
-        class:active={taskType === 'fixed'}
+        class:active={taskType === 'single'}
         role="tab"
-        aria-selected={taskType === 'fixed'}
-        onclick={() => (taskType = 'fixed')}
+        aria-selected={taskType === 'single'}
+        onclick={() => (taskType = 'single')}
       >
-        Fixed
+        Single
       </button>
       <button
         type="button"
@@ -186,6 +191,11 @@
           <input type="time" bind:value={end} disabled={!start} />
         </label>
       </div>
+
+      <label class="todo">
+        <input type="checkbox" bind:checked={isTodo} />
+        <span>To-do (show a checkbox to mark it done)</span>
+      </label>
 
       <p class="hint">Leave times empty for an all-day task.</p>
     {:else}
@@ -304,6 +314,21 @@
   }
   .row .field {
     flex: 1;
+  }
+
+  .todo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--fg);
+    cursor: pointer;
+    user-select: none;
+  }
+  .todo input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
   }
 
   .hint {

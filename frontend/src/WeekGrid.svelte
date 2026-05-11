@@ -74,7 +74,7 @@
     if (t.task_type === 'recurring') {
       return (t.weekdays ?? []).includes(weekday);
     }
-    if (t.task_type === 'fixed') {
+    if (t.task_type === 'single') {
       return t.fixed_date === dateYMD;
     }
     if (t.task_type === 'birthday' && t.fixed_date) {
@@ -223,18 +223,19 @@
       <div class="all-day-cell">
         {#each items as t (t.id)}
           {@const dateYMD = dates[weekday]}
-          {@const done = isDone(t, dateYMD)}
+          {@const done = t.is_todo && isDone(t, dateYMD)}
           <button
             class="all-day-block"
             class:done
+            class:info={!t.is_todo}
             class:bday-task={t.task_type === 'birthday'}
             type="button"
-            onclick={() => onToggle(t, dateYMD)}
+            onclick={() => t.is_todo && onToggle(t, dateYMD)}
             oncontextmenu={(e) => {
               e.preventDefault();
               onRemove(t);
             }}
-            title={`${t.task_type === 'birthday' ? '🎂 ' : ''}${t.title} (click: toggle · right-click: delete)`}
+            title={`${t.task_type === 'birthday' ? '🎂 ' : ''}${t.title}${t.is_todo ? ' (click: toggle · right-click: delete)' : ' (right-click: delete)'}`}
           >
             {t.task_type === 'birthday' ? '🎂 ' : ''}{t.title}
           </button>
@@ -293,18 +294,19 @@
 
         {#each timedTasksForDay(weekday) as t (t.id)}
           {@const dateYMD = dates[weekday]}
-          {@const done = isDone(t, dateYMD)}
+          {@const done = t.is_todo && isDone(t, dateYMD)}
           <button
             class="block"
             class:done
+            class:info={!t.is_todo}
             type="button"
             style={blockStyle(t)}
-            onclick={() => onToggle(t, dateYMD)}
+            onclick={() => t.is_todo && onToggle(t, dateYMD)}
             oncontextmenu={(e) => {
               e.preventDefault();
               onRemove(t);
             }}
-            title={`${t.title} ${fmtTime(t)} (click: toggle · right-click: delete)`}
+            title={`${t.title} ${fmtTime(t)}${t.is_todo ? ' (click: toggle · right-click: delete)' : ' (right-click: delete)'}`}
           >
             <span class="b-title">{t.title}</span>
             <span class="b-time">{fmtTime(t)}</span>
@@ -478,6 +480,10 @@
   .block.done {
     opacity: 0.45;
     text-decoration: line-through;
+  }
+  .block.info,
+  .all-day-block.info {
+    cursor: default;
   }
   .block.event {
     background: color-mix(in srgb, var(--gcal) 75%, transparent);

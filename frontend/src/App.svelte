@@ -31,11 +31,12 @@
 
   type DialogInitial = {
     title?: string;
-    task_type?: 'recurring' | 'fixed';
+    task_type?: 'recurring' | 'single' | 'birthday';
     weekdays?: number[];
     fixed_date?: string;
     start?: string;
     end?: string;
+    is_todo?: boolean;
   };
 
   let dialogOpen = $state(false);
@@ -104,7 +105,7 @@
 
   function openCreate(prefill: DialogInitial = {}) {
     dialogInitial = {
-      task_type: 'fixed',
+      task_type: 'single',
       fixed_date: ymd(new Date()),
       ...prefill
     };
@@ -195,6 +196,15 @@
     if (isPlainKey(e, 't')) {
       e.preventDefault();
       toggleTheme();
+      setCount('');
+      return;
+    }
+    if (isPlainKey(e, 'g')) {
+      e.preventDefault();
+      const now = new Date();
+      focusedDate = ymd(now);
+      focusedWeekday = now.getDay() === 0 ? 6 : now.getDay() - 1;
+      focusedHour = Math.min(23, Math.max(6, now.getHours()));
       setCount('');
       return;
     }
@@ -345,7 +355,7 @@
       bind:focusedDate
       onToggle={toggle}
       onCreate={(dateYMD) =>
-        openCreate({ task_type: 'fixed', fixed_date: dateYMD, start: '', end: '' })}
+        openCreate({ task_type: 'single', fixed_date: dateYMD, start: '', end: '' })}
     />
   {:else if view === 'day'}
     <DayView
@@ -356,7 +366,7 @@
       onRemove={remove}
       onCreate={(weekday, dateYMD, start, end) =>
         openCreate({
-          task_type: 'fixed',
+          task_type: 'single',
           fixed_date: dateYMD,
           weekdays: [weekday],
           start,
@@ -374,7 +384,7 @@
       onRemove={remove}
       onCreate={(weekday, dateYMD, start, end) =>
         openCreate({
-          task_type: 'fixed',
+          task_type: 'single',
           fixed_date: dateYMD,
           weekdays: [weekday],
           start,

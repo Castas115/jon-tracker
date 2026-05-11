@@ -53,7 +53,7 @@
     const k = ymd(d);
     return tasks.filter((t) => {
       if (t.task_type === 'recurring') return (t.weekdays ?? []).includes(wd);
-      if (t.task_type === 'fixed') return t.fixed_date === k;
+      if (t.task_type === 'single') return t.fixed_date === k;
       if (t.task_type === 'birthday' && t.fixed_date) {
         const bd = new Date(t.fixed_date + 'T00:00:00');
         return bd.getMonth() === d.getMonth() && bd.getDate() === d.getDate();
@@ -122,15 +122,16 @@
       {@const inMonth = d.getMonth() === month}
       {@const dayTasks = tasksForDate(d)}
       {@const dayEvents = eventsForDate(d)}
-      {@const doneCount = dayTasks.filter((t) => isCompleted(t, k)).length}
-      {@const total = dayTasks.length}
+      {@const todos = dayTasks.filter((t) => t.is_todo)}
+      {@const doneCount = todos.filter((t) => isCompleted(t, k)).length}
+      {@const total = todos.length}
       {@const items = [
         ...dayTasks.map((t) => ({
           kind: t.task_type === 'birthday' ? 'birthday-task' : 'task',
           title: t.title,
           time: t.start_time ?? '',
           sortKey: t.start_time ?? '',
-          done: isCompleted(t, k)
+          done: t.is_todo && isCompleted(t, k)
         })),
         ...dayEvents.map((e) => ({
           kind: e.kind === 'birthday' ? 'birthday-event' : 'event',
@@ -182,18 +183,24 @@
     {:else}
       <ul>
         {#each selectedTasks as t (t.id)}
-          {@const done = isCompleted(t, selectedYMD)}
+          {@const done = t.is_todo && isCompleted(t, selectedYMD)}
           <li class:done>
-            <label>
-              <input
-                type="checkbox"
-                checked={done}
-                onchange={() => onToggle(t, selectedYMD)}
-              />
-              <span>
+            {#if t.is_todo}
+              <label>
+                <input
+                  type="checkbox"
+                  checked={done}
+                  onchange={() => onToggle(t, selectedYMD)}
+                />
+                <span>
+                  {t.task_type === 'birthday' ? '🎂 ' : ''}{t.title}
+                </span>
+              </label>
+            {:else}
+              <span class="info">
                 {t.task_type === 'birthday' ? '🎂 ' : ''}{t.title}
               </span>
-            </label>
+            {/if}
           </li>
         {/each}
         {#each selectedEvents as ev (ev.id)}

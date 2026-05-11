@@ -66,7 +66,7 @@
 
   function matches(t: Task, k: string): boolean {
     if (t.task_type === 'recurring') return (t.weekdays ?? []).includes(weekday);
-    if (t.task_type === 'fixed') return t.fixed_date === k;
+    if (t.task_type === 'single') return t.fixed_date === k;
     if (t.task_type === 'birthday' && t.fixed_date) {
       const bd = new Date(t.fixed_date + 'T00:00:00');
       return bd.getMonth() === day.getMonth() && bd.getDate() === day.getDate();
@@ -162,13 +162,14 @@
     <span class="time-col tag">All day</span>
     <div class="all-day-cell">
       {#each allDayTasks as t (t.id)}
-        {@const done = isDone(t, focusedDate)}
+        {@const done = t.is_todo && isDone(t, focusedDate)}
         <button
           class="all-day-block"
           class:done
+          class:info={!t.is_todo}
           class:bday-task={t.task_type === 'birthday'}
           type="button"
-          onclick={() => onToggle(t, focusedDate)}
+          onclick={() => t.is_todo && onToggle(t, focusedDate)}
           oncontextmenu={(e) => {
             e.preventDefault();
             onRemove(t);
@@ -227,18 +228,19 @@
         {@const sm = toMinutes(t.start_time)}
         {@const em = toMinutes(t.end_time) ?? (sm !== null ? sm + 60 : null)}
         {#if sm !== null && em !== null}
-          {@const done = isDone(t, focusedDate)}
+          {@const done = t.is_todo && isDone(t, focusedDate)}
           <button
             class="block"
             class:done
+            class:info={!t.is_todo}
             type="button"
             style={blockStyle(sm, em)}
-            onclick={() => onToggle(t, focusedDate)}
+            onclick={() => t.is_todo && onToggle(t, focusedDate)}
             oncontextmenu={(e) => {
               e.preventDefault();
               onRemove(t);
             }}
-            title={`${t.title} ${fmtTime(t)} (click: toggle · right-click: delete)`}
+            title={`${t.title} ${fmtTime(t)}${t.is_todo ? ' (click: toggle · right-click: delete)' : ' (right-click: delete)'}`}
           >
             <span class="b-title">{t.title}</span>
             <span class="b-time">{fmtTime(t)}</span>
@@ -422,6 +424,7 @@
     gap: 2px;
   }
   .block.done { opacity: 0.45; text-decoration: line-through; }
+  .block.info, .all-day-block.info { cursor: default; }
   .block.event {
     background: color-mix(in srgb, var(--gcal) 75%, transparent);
     color: var(--gcal-fg);
