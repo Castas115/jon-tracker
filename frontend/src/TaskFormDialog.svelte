@@ -75,33 +75,39 @@
 
   const TAB_ORDER: TaskType[] = ['single', 'recurring', 'weekly_goal', 'birthday'];
 
-  function handleTabKey(e: KeyboardEvent) {
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    e.preventDefault();
+  function moveTab(dir: -1 | 1) {
     const i = TAB_ORDER.indexOf(taskType);
-    const next = e.key === 'ArrowRight'
-      ? TAB_ORDER[Math.min(TAB_ORDER.length - 1, i + 1)]
-      : TAB_ORDER[Math.max(0, i - 1)];
-    taskType = next;
-    // Move focus to the newly active tab so subsequent arrows keep working.
-    queueMicrotask(() => {
-      const el = dialog?.querySelector<HTMLButtonElement>(
-        `.type-tab[data-type="${next}"]`
-      );
-      el?.focus();
-    });
+    taskType = TAB_ORDER[Math.min(TAB_ORDER.length - 1, Math.max(0, i + dir))];
   }
 
   function handleDayKey(e: KeyboardEvent, i: number) {
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      e.preventDefault();
-      const next = e.key === 'ArrowRight' ? Math.min(6, i + 1) : Math.max(0, i - 1);
-      const el = dialog?.querySelector<HTMLButtonElement>(`.day[data-idx="${next}"]`);
-      el?.focus();
-    } else if (e.key === ' ' || e.key === 'Enter') {
+    if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault();
       toggleDay(i);
     }
+  }
+
+  function onDialogKey(e: KeyboardEvent) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const target = e.target as HTMLElement;
+    // Don't hijack arrows inside text-editing fields.
+    if (target instanceof HTMLInputElement) {
+      const type = target.type;
+      if (type === 'text' || type === 'date' || type === 'time' || type === 'number') return;
+    }
+    if (target instanceof HTMLTextAreaElement) return;
+
+    if (target.classList.contains('day')) {
+      e.preventDefault();
+      const idx = parseInt(target.dataset.idx ?? '0', 10);
+      const next = e.key === 'ArrowRight' ? Math.min(6, idx + 1) : Math.max(0, idx - 1);
+      const el = dialog?.querySelector<HTMLButtonElement>(`.day[data-idx="${next}"]`);
+      el?.focus();
+      return;
+    }
+
+    e.preventDefault();
+    moveTab(e.key === 'ArrowRight' ? 1 : -1);
   }
 
   function handleSubmit(e: SubmitEvent) {
@@ -151,11 +157,11 @@
   }
 </script>
 
-<dialog bind:this={dialog} onclose={onClose} onclick={handleBackdropClick}>
+<dialog bind:this={dialog} onclose={onClose} onclick={handleBackdropClick} onkeydown={onDialogKey}>
   <form onsubmit={handleSubmit}>
     <h2>New task</h2>
 
-    <div class="type-tabs" role="tablist" tabindex="-1" onkeydown={handleTabKey}>
+    <div class="type-tabs" role="tablist" tabindex="-1">
       <button
         type="button"
         class="type-tab"
