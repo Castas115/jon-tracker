@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api, type CalendarEvent } from './lib/api';
-  import { ymd } from './lib/dates';
+  import { addMonthsYMD, mondayOf, ymd } from './lib/dates';
   import { isInputFocused, isPlainKey } from './lib/keys';
   import { type Task } from './lib/types';
   import { applyTheme, loadTheme, saveTheme, type Theme } from './lib/theme';
@@ -49,6 +49,8 @@
   let focusedWeekday = $state(_weekdayMonFirst);
   let focusedHour = $state(Math.min(23, Math.max(6, _now.getHours())));
   let focusedDate = $state(ymd(_now));
+
+  const weekStartYMD = $derived(ymd(mondayOf(new Date(focusedDate + 'T00:00:00'))));
 
   // Vim-style count prefix: "3j" → repeat j three times.
   let pendingCount = $state('');
@@ -177,21 +179,16 @@
       setCount('');
       return;
     }
-    if (isPlainKey(e, 'v')) {
+    // Alt+H / Alt+L cycle between views: day ↔ week ↔ month.
+    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'h' || e.key === 'H' || e.key === 'ArrowLeft')) {
       e.preventDefault();
-      view = 'day';
+      view = view === 'month' ? 'week' : view === 'week' ? 'day' : 'day';
       setCount('');
       return;
     }
-    if (isPlainKey(e, 'c')) {
+    if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'l' || e.key === 'L' || e.key === 'ArrowRight')) {
       e.preventDefault();
-      view = 'week';
-      setCount('');
-      return;
-    }
-    if (isPlainKey(e, 'x')) {
-      e.preventDefault();
-      view = 'month';
+      view = view === 'day' ? 'week' : view === 'week' ? 'month' : 'month';
       setCount('');
       return;
     }
@@ -205,6 +202,27 @@
       e.preventDefault();
       helpOpen = true;
       setCount('');
+      return;
+    }
+
+    // Shift+H / Shift+L: jump previous/next week (week+day views) or month (month view).
+    // KeyboardEvent.key on shifted letter is uppercase, so plain "H" / "L".
+    const isShiftLeft =
+      e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'H' || e.key === 'ArrowLeft');
+    const isShiftRight =
+      e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'L' || e.key === 'ArrowRight');
+
+    if (isShiftLeft || isShiftRight) {
+      e.preventDefault();
+      const count = Math.max(1, parseInt(pendingCount, 10) || 1);
+      setCount('');
+      const sign = isShiftLeft ? -1 : 1;
+      if (view === 'month') {
+        focusedDate = addMonthsYMD(focusedDate, sign * count);
+      } else {
+        // week + day: jump by full weeks
+        focusedDate = shiftDate(focusedDate, sign * 7 * count);
+      }
       return;
     }
 
@@ -349,6 +367,7 @@
     <WeekGrid
       {tasks}
       {events}
+      {weekStartYMD}
       {focusedWeekday}
       {focusedHour}
       onToggle={toggle}

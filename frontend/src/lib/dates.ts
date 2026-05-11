@@ -60,3 +60,39 @@ export function addMonths(year: number, month: number, delta: number): { year: n
   const d = new Date(year, month + delta, 1);
   return { year: d.getFullYear(), month: d.getMonth() };
 }
+
+/** Monday (00:00 local) of the week containing `d`. */
+export function mondayOf(d: Date): Date {
+  const m = new Date(d);
+  m.setHours(0, 0, 0, 0);
+  const dow = m.getDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
+  m.setDate(m.getDate() + diff);
+  return m;
+}
+
+/** Seven YMD strings Mon..Sun starting at `monday`. */
+export function weekDatesFromMonday(monday: Date): string[] {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return ymd(d);
+  });
+}
+
+export function addDaysYMD(dateYMD: string, days: number): string {
+  const d = new Date(dateYMD + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return ymd(d);
+}
+
+export function addMonthsYMD(dateYMD: string, delta: number): string {
+  const d = new Date(dateYMD + 'T00:00:00');
+  const day = d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + delta);
+  // Clamp day to last day of target month
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day, lastDay));
+  return ymd(d);
+}

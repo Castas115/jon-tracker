@@ -1,10 +1,12 @@
 <script lang="ts">
-  import { weekDates, todayWeekday, type CalendarEvent } from './lib/api';
+  import { type CalendarEvent } from './lib/api';
+  import { weekDatesFromMonday, ymd } from './lib/dates';
   import { WEEKDAY_LABELS, type Task } from './lib/types';
 
   type Props = {
     tasks: Task[];
     events?: CalendarEvent[];
+    weekStartYMD: string;
     focusedWeekday?: number;
     focusedHour?: number;
     onToggle: (task: Task, dateYMD: string) => void;
@@ -15,6 +17,7 @@
   const {
     tasks,
     events = [],
+    weekStartYMD,
     focusedWeekday = -1,
     focusedHour = -1,
     onToggle,
@@ -32,8 +35,9 @@
   const WORK_TOP_PX = ((WORK_START_MIN - HOUR_START * 60) / 60) * CELL_PX;
   const WORK_HEIGHT_PX = ((WORK_END_MIN - WORK_START_MIN) / 60) * CELL_PX;
 
-  const dates = weekDates();
-  const today = todayWeekday();
+  const dates = $derived(weekDatesFromMonday(new Date(weekStartYMD + 'T00:00:00')));
+  const todayYMD = ymd(new Date());
+  const today = $derived(dates.indexOf(todayYMD));
 
   function toMinutes(t: string | null): number | null {
     if (!t) return null;

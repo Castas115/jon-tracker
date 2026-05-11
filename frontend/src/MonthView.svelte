@@ -32,12 +32,14 @@
   let selectedYMD = $state(ymd(now));
 
   // When the keyboard focus moves outside the visible month, follow it.
+  // Keep the detail panel in sync with the focused date too.
   $effect(() => {
     const d = new Date(focusedDate + 'T00:00:00');
     if (d.getFullYear() !== year || d.getMonth() !== month) {
       year = d.getFullYear();
       month = d.getMonth();
     }
+    selectedYMD = focusedDate;
   });
 
   const grid = $derived(monthGrid(year, month));
