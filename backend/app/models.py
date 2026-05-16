@@ -26,6 +26,10 @@ class Task(Base):
     is_todo: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     # Weekly-goal tasks: how many completions per ISO week count as the goal.
     target_per_week: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Weekly-goal tasks with weekday-specific targets. List of
+    # {"weekdays": [0..6], "target": int>=1}. When set, overrides
+    # target_per_week — total target = sum(target across segments).
+    target_segments: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
     completions: Mapped[list["TaskCompletion"]] = relationship(

@@ -20,6 +20,7 @@ def _to_read(task: Task) -> TaskRead:
         end_time=task.end_time,
         is_todo=task.is_todo,
         target_per_week=task.target_per_week,
+        target_segments=task.target_segments,  # type: ignore[arg-type]
         created_at=task.created_at,
         completed_dates=sorted(c.completed_on for c in task.completions),
     )
@@ -42,6 +43,9 @@ def create_task(payload: TaskCreate, db: Session = Depends(get_db)) -> TaskRead:
         end_time=payload.end_time,
         is_todo=payload.is_todo,
         target_per_week=payload.target_per_week,
+        target_segments=(
+            [s.model_dump() for s in payload.target_segments] if payload.target_segments else None
+        ),
     )
     db.add(task)
     db.commit()

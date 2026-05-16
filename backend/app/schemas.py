@@ -8,6 +8,22 @@ Weekday = Annotated[int, Field(ge=0, le=6)]
 TaskType = Literal["recurring", "single", "birthday", "weekly_goal"]
 
 
+class TargetSegment(BaseModel):
+    """A weekday-bucketed segment of a weekly goal.
+
+    Example: meditar 2x Mon-Thu + 1x Fri-Sun → two segments.
+    """
+
+    weekdays: list[Weekday] = Field(min_length=1)
+    target: int = Field(ge=1, le=99)
+
+    @model_validator(mode="after")
+    def _unique(self):
+        if len(set(self.weekdays)) != len(self.weekdays):
+            raise ValueError("segment weekdays must be unique")
+        return self
+
+
 def _validate(model):
     """Shared validation: type coherence + time range."""
     if model.start_time and model.end_time and model.end_time <= model.start_time:
@@ -37,8 +53,21 @@ def _validate(model):
         if getattr(model, "is_todo", False):
             raise ValueError("birthday tasks cannot be todos")
     elif model.task_type == "weekly_goal":
-        if not getattr(model, "target_per_week", None) or model.target_per_week < 1:
-            raise ValueError("weekly_goal tasks need target_per_week >= 1")
+        segs = getattr(model, "target_segments", None) or []
+        flat = getattr(model, "target_per_week", None)
+        if not flat and not segs:
+            raise ValueError("weekly_goal tasks need target_per_week or target_segments")
+        if segs:
+            # Disallow overlapping weekdays between segments — every weekday
+            # can belong to at most one segment so completion counting is
+            # unambiguous.
+            seen: set[int] = set()
+            for s in segs:
+                wds = s.weekdays if hasattr(s, "weekdays") else s["weekdays"]
+                for wd in wds:
+                    if wd in seen:
+                        raise ValueError(f"weekday {wd} appears in multiple target_segments")
+                    seen.add(wd)
         if model.weekdays:
             raise ValueError("weekly_goal tasks must not set weekdays")
         if model.fixed_date is not None:
@@ -59,6 +88,7 @@ class TaskCreate(BaseModel):
     end_time: TimeStr | None = None
     is_todo: bool = False
     target_per_week: int | None = Field(default=None, ge=1, le=99)
+    target_segments: list[TargetSegment] | None = None
 
     @model_validator(mode="after")
     def _check(self):
@@ -74,6 +104,7 @@ class TaskUpdate(BaseModel):
     end_time: TimeStr | None = None
     is_todo: bool | None = None
     target_per_week: int | None = Field(default=None, ge=1, le=99)
+    target_segments: list[TargetSegment] | None = None
 
 
 class TaskRead(BaseModel):
@@ -86,6 +117,7 @@ class TaskRead(BaseModel):
     end_time: str | None
     is_todo: bool
     target_per_week: int | None
+    target_segments: list[TargetSegment] | None
     created_at: datetime
     completed_dates: list[date]
 

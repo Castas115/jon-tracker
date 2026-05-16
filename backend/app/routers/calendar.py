@@ -40,6 +40,4 @@ def list_events(
     try:
         return [CalendarEvent(**ev) for ev in ics.list_events(from_date, to_date)]
     except Exception as exc:
-        raise HTTPException(
-            status.HTTP_502_BAD_GATEWAY, f"failed to fetch ics: {exc}"
-        )
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"failed to fetch ics: {exc}")

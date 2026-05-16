@@ -64,11 +64,11 @@ def ensure_schema(eng: Engine) -> None:
         if "fixed_date" not in existing:
             conn.execute(text("ALTER TABLE tasks ADD COLUMN fixed_date DATE"))
         if "is_todo" not in existing:
-            conn.execute(
-                text("ALTER TABLE tasks ADD COLUMN is_todo BOOLEAN NOT NULL DEFAULT 0")
-            )
+            conn.execute(text("ALTER TABLE tasks ADD COLUMN is_todo BOOLEAN NOT NULL DEFAULT 0"))
         if "target_per_week" not in existing:
             conn.execute(text("ALTER TABLE tasks ADD COLUMN target_per_week INTEGER"))
+        if "target_segments" not in existing:
+            conn.execute(text("ALTER TABLE tasks ADD COLUMN target_segments TEXT"))
 
         # Rename legacy task_type='fixed' to 'single' (terminology change).
         conn.execute(text("UPDATE tasks SET task_type = 'single' WHERE task_type = 'fixed'"))
