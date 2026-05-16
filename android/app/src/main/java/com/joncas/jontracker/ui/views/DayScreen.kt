@@ -20,8 +20,10 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -46,6 +48,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.joncas.jontracker.api.CalendarEvent
 import com.joncas.jontracker.api.Task
+import com.joncas.jontracker.api.TrackerApi
 import com.joncas.jontracker.data.TaskRepo
 import com.joncas.jontracker.data.appliesOn
 import com.joncas.jontracker.data.displayTitle
@@ -131,7 +134,7 @@ fun DayScreen() {
                     TaskRow(
                         task = t,
                         date = date,
-                        onToggle = { scope.launch { TaskRepo.toggle(t, date) } },
+                        onAction = { a -> scope.launch { TaskRepo.toggle(t, date, a) } },
                     )
                 }
                 items(allDayEvents, key = { "ea${it.id}" }) { ev ->
@@ -147,7 +150,7 @@ fun DayScreen() {
                             is TimedItem.TaskItem -> TaskRow(
                                 task = item.task,
                                 date = date,
-                                onToggle = { scope.launch { TaskRepo.toggle(item.task, date) } },
+                                onAction = { a -> scope.launch { TaskRepo.toggle(item.task, date, a) } },
                             )
                             is TimedItem.EventItem -> EventRow(title = item.event.title, time = item.startStr)
                         }
@@ -206,7 +209,7 @@ private fun LazyListScope.upcomingSection(
 ) {
     val days = (1..7L).map { base.plusDays(it) }
     val populated = days.mapNotNull { d ->
-        val ts = tasks.filter { it.appliesOn(d) }
+        val ts = tasks.filter { it.show_in_upcoming && it.appliesOn(d) }
         val es = eventsOn(events, d)
         if (ts.isEmpty() && es.isEmpty()) null else Triple(d, ts, es)
     }
@@ -317,9 +320,10 @@ private fun SectionLabel(text: String) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun TaskRow(task: Task, date: LocalDate, onToggle: () -> Unit) {
+private fun TaskRow(task: Task, date: LocalDate, onAction: (TrackerApi.ToggleAction) -> Unit) {
     val done = task.isCompletedOn(date)
     val actionable = task.is_todo
+    val isGoal = task.task_type == "weekly_goal"
     val edit = LocalEditTask.current
     Row(
         modifier = Modifier
@@ -327,23 +331,41 @@ private fun TaskRow(task: Task, date: LocalDate, onToggle: () -> Unit) {
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .combinedClickable(
-                onClick = { if (actionable) onToggle() else edit(task) },
+                onClick = {
+                    when {
+                        isGoal -> onAction(TrackerApi.ToggleAction.ADD)
+                        actionable -> onAction(TrackerApi.ToggleAction.TOGGLE)
+                        else -> edit(task)
+                    }
+                },
                 onLongClick = { edit(task) },
             )
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (actionable) {
-            Checkbox(checked = done, onCheckedChange = { onToggle() })
-        } else {
-            Spacer(modifier = Modifier.width(8.dp))
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
+        when {
+            isGoal -> {
+                IconButton(onClick = { onAction(TrackerApi.ToggleAction.REMOVE) }) {
+                    Icon(Icons.Filled.Remove, contentDescription = "Subtract one")
+                }
+                IconButton(onClick = { onAction(TrackerApi.ToggleAction.ADD) }) {
+                    Icon(Icons.Filled.Add, contentDescription = "Add one")
+                }
+            }
+            actionable -> Checkbox(
+                checked = done,
+                onCheckedChange = { onAction(TrackerApi.ToggleAction.TOGGLE) },
             )
-            Spacer(modifier = Modifier.width(16.dp))
+            else -> {
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+            }
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(

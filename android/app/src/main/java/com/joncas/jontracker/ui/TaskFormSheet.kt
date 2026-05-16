@@ -87,6 +87,7 @@ fun TaskFormSheet(
     var startTime by remember { mutableStateOf(existing?.start_time) }
     var endTime by remember { mutableStateOf(existing?.end_time) }
     var isTodo by remember { mutableStateOf(existing?.is_todo ?: true) }
+    var showInUpcoming by remember { mutableStateOf(existing?.show_in_upcoming ?: true) }
 
     // Weekly-goal segments. Initial state mirrors existing task if it has
     // segments; falls back to a single segment covering all 7 days with the
@@ -248,6 +249,11 @@ fun TaskFormSheet(
                 }
             }
 
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Show in upcoming", modifier = Modifier.weight(1f))
+                Switch(checked = showInUpcoming, onCheckedChange = { showInUpcoming = it })
+            }
+
             Spacer(modifier = Modifier.width(0.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -281,6 +287,7 @@ fun TaskFormSheet(
                             },
                             target_per_week = flatSum,
                             target_segments = finalSegments,
+                            show_in_upcoming = showInUpcoming,
                         )
                         onSubmit(payload)
                     },

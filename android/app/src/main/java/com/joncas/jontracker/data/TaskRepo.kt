@@ -79,9 +79,13 @@ object TaskRepo {
         }.onFailure { _error.value = it.message ?: it.toString() }
     }
 
-    suspend fun toggle(task: Task, date: LocalDate) {
+    suspend fun toggle(
+        task: Task,
+        date: LocalDate,
+        action: TrackerApi.ToggleAction = TrackerApi.ToggleAction.TOGGLE,
+    ) {
         runCatching {
-            val t = TrackerApi.toggle(task.id, date)
+            val t = TrackerApi.toggle(task.id, date, action)
             _tasks.value = _tasks.value.map { if (it.id == task.id) t else it }
         }.onFailure { _error.value = it.message ?: it.toString() }
     }

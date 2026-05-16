@@ -17,8 +17,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -42,6 +44,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.joncas.jontracker.api.CalendarEvent
 import com.joncas.jontracker.api.Task
+import com.joncas.jontracker.api.TrackerApi
 import com.joncas.jontracker.data.TaskRepo
 import com.joncas.jontracker.data.appliesOn
 import com.joncas.jontracker.data.displayTitle
@@ -115,7 +118,7 @@ fun WeekScreen() {
                                 is Row.TaskRow -> WeekTaskRow(
                                     task = row.task,
                                     date = d,
-                                    onToggle = { scope.launch { TaskRepo.toggle(row.task, d) } },
+                                    onAction = { a -> scope.launch { TaskRepo.toggle(row.task, d, a) } },
                                 )
                                 is Row.EventRow -> WeekEventRow(title = row.title, time = row.time)
                             }
@@ -148,9 +151,10 @@ private fun DayHeader(date: LocalDate) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun WeekTaskRow(task: Task, date: LocalDate, onToggle: () -> Unit) {
+private fun WeekTaskRow(task: Task, date: LocalDate, onAction: (TrackerApi.ToggleAction) -> Unit) {
     val done = task.isCompletedOn(date)
     val actionable = task.is_todo
+    val isGoal = task.task_type == "weekly_goal"
     val edit = LocalEditTask.current
     Row(
         modifier = Modifier
@@ -158,23 +162,41 @@ private fun WeekTaskRow(task: Task, date: LocalDate, onToggle: () -> Unit) {
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .combinedClickable(
-                onClick = { if (actionable) onToggle() else edit(task) },
+                onClick = {
+                    when {
+                        isGoal -> onAction(TrackerApi.ToggleAction.ADD)
+                        actionable -> onAction(TrackerApi.ToggleAction.TOGGLE)
+                        else -> edit(task)
+                    }
+                },
                 onLongClick = { edit(task) },
             )
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (actionable) {
-            Checkbox(checked = done, onCheckedChange = { onToggle() })
-        } else {
-            Spacer(modifier = Modifier.width(8.dp))
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
+        when {
+            isGoal -> {
+                IconButton(onClick = { onAction(TrackerApi.ToggleAction.REMOVE) }) {
+                    Icon(Icons.Filled.Remove, contentDescription = "Subtract one")
+                }
+                IconButton(onClick = { onAction(TrackerApi.ToggleAction.ADD) }) {
+                    Icon(Icons.Filled.Add, contentDescription = "Add one")
+                }
+            }
+            actionable -> Checkbox(
+                checked = done,
+                onCheckedChange = { onAction(TrackerApi.ToggleAction.TOGGLE) },
             )
-            Spacer(modifier = Modifier.width(16.dp))
+            else -> {
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+            }
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(

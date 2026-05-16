@@ -52,11 +52,21 @@ object TrackerApi {
         client.delete("$BASE_URL/tasks/$id")
     }
 
-    suspend fun toggle(taskId: Int, date: LocalDate): Task {
+    enum class ToggleAction(val wire: String) {
+        TOGGLE("toggle"),
+        ADD("add"),
+        REMOVE("remove"),
+    }
+
+    suspend fun toggle(
+        taskId: Int,
+        date: LocalDate,
+        action: ToggleAction = ToggleAction.TOGGLE,
+    ): Task {
         val k = date.format(DateTimeFormatter.ISO_LOCAL_DATE)
         return client.post("$BASE_URL/tasks/$taskId/toggle") {
             contentType(ContentType.Application.Json)
-            setBody(mapOf("completed_on" to k))
+            setBody(mapOf("completed_on" to k, "action" to action.wire))
         }.body()
     }
 
