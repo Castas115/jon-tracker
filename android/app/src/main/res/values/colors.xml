@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#000000</color>
+    <color name="bg2">#0A0A0A</color>
+    <color name="border">#1F1F1F</color>
+    <color name="fg">#E5E5E5</color>
+    <color name="fg_muted">#888888</color>
+    <color name="accent">#9C7546</color>
+    <color name="accent_fg">#F5E8D8</color>
+    <color name="today">#4F9A78</color>
+</resources>
