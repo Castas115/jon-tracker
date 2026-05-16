@@ -28,7 +28,8 @@ token.json
 *.db
 *.sqlite
 *.sqlite3
-data/
+/data/
+/backend/data/
 
 # Editor / OS
 .vscode/
