@@ -89,6 +89,7 @@ class TaskCreate(BaseModel):
     is_todo: bool = False
     target_per_week: int | None = Field(default=None, ge=1, le=99)
     target_segments: list[TargetSegment] | None = None
+    show_in_upcoming: bool = True
 
     @model_validator(mode="after")
     def _check(self):
@@ -105,6 +106,7 @@ class TaskUpdate(BaseModel):
     is_todo: bool | None = None
     target_per_week: int | None = Field(default=None, ge=1, le=99)
     target_segments: list[TargetSegment] | None = None
+    show_in_upcoming: bool | None = None
 
 
 class TaskRead(BaseModel):
@@ -118,6 +120,7 @@ class TaskRead(BaseModel):
     is_todo: bool
     target_per_week: int | None
     target_segments: list[TargetSegment] | None
+    show_in_upcoming: bool
     created_at: datetime
     completed_dates: list[date]
 
@@ -126,3 +129,7 @@ class TaskRead(BaseModel):
 
 class CompletionToggle(BaseModel):
     completed_on: date
+    # "toggle" (default) → flip current state.
+    # "add"   → ensure there is a completion for this date (idempotent).
+    # "remove"→ ensure there is no completion for this date (idempotent).
+    action: Literal["toggle", "add", "remove"] = "toggle"

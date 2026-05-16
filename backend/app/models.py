@@ -24,6 +24,11 @@ class Task(Base):
     end_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
     # When true the task is actionable (renders a checkbox). Always false for birthdays.
     is_todo: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # When true the task appears in the day-view "Upcoming" panel. Default
+    # true so existing rows keep showing up.
+    show_in_upcoming: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False, server_default="1"
+    )
     # Weekly-goal tasks: how many completions per ISO week count as the goal.
     target_per_week: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # Weekly-goal tasks with weekday-specific targets. List of

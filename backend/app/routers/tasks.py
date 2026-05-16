@@ -21,6 +21,7 @@ def _to_read(task: Task) -> TaskRead:
         is_todo=task.is_todo,
         target_per_week=task.target_per_week,
         target_segments=task.target_segments,  # type: ignore[arg-type]
+        show_in_upcoming=task.show_in_upcoming,
         created_at=task.created_at,
         completed_dates=sorted(c.completed_on for c in task.completions),
     )
@@ -46,6 +47,7 @@ def create_task(payload: TaskCreate, db: Session = Depends(get_db)) -> TaskRead:
         target_segments=(
             [s.model_dump() for s in payload.target_segments] if payload.target_segments else None
         ),
+        show_in_upcoming=payload.show_in_upcoming,
     )
     db.add(task)
     db.commit()
@@ -89,10 +91,17 @@ def toggle_completion(
             TaskCompletion.completed_on == payload.completed_on,
         )
     )
-    if existing:
-        db.delete(existing)
-    else:
-        db.add(TaskCompletion(task_id=task_id, completed_on=payload.completed_on))
+    if payload.action == "add":
+        if not existing:
+            db.add(TaskCompletion(task_id=task_id, completed_on=payload.completed_on))
+    elif payload.action == "remove":
+        if existing:
+            db.delete(existing)
+    else:  # toggle
+        if existing:
+            db.delete(existing)
+        else:
+            db.add(TaskCompletion(task_id=task_id, completed_on=payload.completed_on))
     db.commit()
     db.refresh(task)
     return _to_read(task)
