@@ -9,10 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -36,15 +33,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.joncas.jontracker.api.Task
 import com.joncas.jontracker.api.TaskPayload
-import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -62,20 +57,25 @@ private val TASK_TYPES = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskFormSheet(
+    existing: Task? = null,
     onDismiss: () -> Unit,
     onSubmit: (TaskPayload) -> Unit,
+    onDelete: (() -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val scope = rememberCoroutineScope()
 
-    var title by remember { mutableStateOf("") }
-    var taskType by remember { mutableStateOf("single") }
-    var weekdays by remember { mutableStateOf(setOf<Int>()) }
-    var fixedDate by remember { mutableStateOf(LocalDate.now()) }
-    var startTime by remember { mutableStateOf<String?>(null) }
-    var endTime by remember { mutableStateOf<String?>(null) }
-    var isTodo by remember { mutableStateOf(true) }
-    var targetPerWeek by remember { mutableStateOf(3) }
+    var title by remember { mutableStateOf(existing?.title ?: "") }
+    var taskType by remember { mutableStateOf(existing?.task_type ?: "single") }
+    var weekdays by remember { mutableStateOf(existing?.weekdays?.toSet() ?: emptySet()) }
+    var fixedDate by remember {
+        mutableStateOf(
+            existing?.fixed_date?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: LocalDate.now()
+        )
+    }
+    var startTime by remember { mutableStateOf(existing?.start_time) }
+    var endTime by remember { mutableStateOf(existing?.end_time) }
+    var isTodo by remember { mutableStateOf(existing?.is_todo ?: true) }
+    var targetPerWeek by remember { mutableStateOf(existing?.target_per_week ?: 3) }
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showStartTime by remember { mutableStateOf(false) }
@@ -97,7 +97,10 @@ fun TaskFormSheet(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("New task", style = MaterialTheme.typography.titleMedium)
+            Text(
+                if (existing == null) "New task" else "Edit task",
+                style = MaterialTheme.typography.titleMedium,
+            )
 
             OutlinedTextField(
                 value = title,
@@ -107,7 +110,6 @@ fun TaskFormSheet(
                 singleLine = true,
             )
 
-            // Type
             Text("Type", style = MaterialTheme.typography.labelMedium)
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 TASK_TYPES.forEachIndexed { idx, (key, label) ->
@@ -126,7 +128,6 @@ fun TaskFormSheet(
                 }
             }
 
-            // Conditional: weekdays for recurring
             if (taskType == "recurring") {
                 Text("Weekdays", style = MaterialTheme.typography.labelMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -142,7 +143,6 @@ fun TaskFormSheet(
                 }
             }
 
-            // Conditional: date for single/birthday
             if (taskType == "single" || taskType == "birthday") {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Date: ${fixedDate.format(ISO)}", modifier = Modifier.weight(1f))
@@ -150,23 +150,16 @@ fun TaskFormSheet(
                 }
             }
 
-            // Time pickers (optional, except weekly_goal usually has no times)
             if (taskType != "weekly_goal") {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Start: ${startTime ?: "—"}",
-                        modifier = Modifier.weight(1f),
-                    )
+                    Text("Start: ${startTime ?: "—"}", modifier = Modifier.weight(1f))
                     TextButton(onClick = { showStartTime = true }) { Text("Pick") }
                     if (startTime != null) {
                         TextButton(onClick = { startTime = null }) { Text("Clear") }
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "End: ${endTime ?: "—"}",
-                        modifier = Modifier.weight(1f),
-                    )
+                    Text("End: ${endTime ?: "—"}", modifier = Modifier.weight(1f))
                     TextButton(onClick = { showEndTime = true }) { Text("Pick") }
                     if (endTime != null) {
                         TextButton(onClick = { endTime = null }) { Text("Clear") }
@@ -174,7 +167,6 @@ fun TaskFormSheet(
                 }
             }
 
-            // Is todo (auto-derived for birthday/weekly_goal)
             if (taskType != "birthday" && taskType != "weekly_goal") {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Track completion (todo)", modifier = Modifier.weight(1f))
@@ -182,7 +174,6 @@ fun TaskFormSheet(
                 }
             }
 
-            // Target per week (weekly_goal only)
             if (taskType == "weekly_goal") {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Target per week", modifier = Modifier.weight(1f))
@@ -199,6 +190,10 @@ fun TaskFormSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
             ) {
+                if (existing != null && onDelete != null) {
+                    TextButton(onClick = onDelete) { Text("Delete") }
+                    Box(modifier = Modifier.weight(1f))
+                }
                 TextButton(onClick = onDismiss) { Text("Cancel") }
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
@@ -220,7 +215,7 @@ fun TaskFormSheet(
                         )
                         onSubmit(payload)
                     },
-                ) { Text("Create") }
+                ) { Text(if (existing == null) "Create" else "Save") }
             }
             Spacer(modifier = Modifier.width(0.dp))
         }

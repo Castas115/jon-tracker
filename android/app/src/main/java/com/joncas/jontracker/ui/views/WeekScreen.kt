@@ -1,7 +1,8 @@
 package com.joncas.jontracker.ui.views
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,8 +44,10 @@ import com.joncas.jontracker.api.CalendarEvent
 import com.joncas.jontracker.api.Task
 import com.joncas.jontracker.data.TaskRepo
 import com.joncas.jontracker.data.appliesOn
+import com.joncas.jontracker.data.displayTitle
 import com.joncas.jontracker.data.isCompletedOn
 import com.joncas.jontracker.data.mondayOfWeek
+import com.joncas.jontracker.ui.LocalEditTask
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -143,16 +146,21 @@ private fun DayHeader(date: LocalDate) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun WeekTaskRow(task: Task, date: LocalDate, onToggle: () -> Unit) {
     val done = task.isCompletedOn(date)
     val actionable = task.is_todo && task.task_type != "weekly_goal"
+    val edit = LocalEditTask.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(enabled = actionable, onClick = onToggle)
+            .combinedClickable(
+                onClick = { if (actionable) onToggle() else edit(task) },
+                onLongClick = { edit(task) },
+            )
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -170,7 +178,7 @@ private fun WeekTaskRow(task: Task, date: LocalDate, onToggle: () -> Unit) {
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                task.title,
+                task.displayTitle(date),
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                 textDecoration = if (done) TextDecoration.LineThrough else null,

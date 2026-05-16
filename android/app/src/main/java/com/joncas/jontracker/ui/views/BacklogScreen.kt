@@ -1,8 +1,10 @@
 package com.joncas.jontracker.ui.views
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,6 +49,7 @@ import com.joncas.jontracker.api.Task
 import com.joncas.jontracker.api.TaskPayload
 import com.joncas.jontracker.data.TaskRepo
 import com.joncas.jontracker.data.completionsThisWeek
+import com.joncas.jontracker.ui.LocalEditTask
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -179,6 +182,7 @@ private fun SectionLabelBacklog(text: String) {
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun BacklogRow(
     task: Task,
@@ -186,11 +190,16 @@ private fun BacklogRow(
     onSchedule: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val edit = LocalEditTask.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
+            .combinedClickable(
+                onClick = { edit(task) },
+                onLongClick = { edit(task) },
+            )
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -217,6 +226,7 @@ private fun BacklogRow(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun GoalRow(
     goal: Task,
@@ -224,6 +234,7 @@ private fun GoalRow(
     onTick: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val edit = LocalEditTask.current
     val done = goal.completionsThisWeek(today)
     val target = goal.target_per_week ?: 0
     val todayDone = goal.completed_dates.contains(today.toString())
@@ -235,6 +246,10 @@ private fun GoalRow(
             .background(
                 if (hit) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                 else MaterialTheme.colorScheme.surfaceVariant
+            )
+            .combinedClickable(
+                onClick = { edit(goal) },
+                onLongClick = { edit(goal) },
             )
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
