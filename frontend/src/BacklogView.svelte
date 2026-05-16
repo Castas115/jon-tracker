@@ -10,9 +10,10 @@
     onRemove: (task: Task) => void;
     onCreate: () => void;
     onCreateGoal: () => void;
+    onEdit: (task: Task) => void;
   };
 
-  const { tasks, onToggle, onAssignDate, onRemove, onCreate, onCreateGoal }: Props = $props();
+  const { tasks, onToggle, onAssignDate, onRemove, onCreate, onCreateGoal, onEdit }: Props = $props();
 
   // Backlog = undated singles still pending (done singles graduate out).
   const singles = $derived(
@@ -78,7 +79,12 @@
           </button>
           <div class="goal-body">
             <div class="goal-head">
-              <span class="title">{t.title}</span>
+              <button
+                type="button"
+                class="title title-btn"
+                title="Edit goal"
+                onclick={() => onEdit(t)}
+              >{t.title}</button>
               {#if status.exceeded}
                 <span class="badge over" title="Smashed it">⭐ +{status.done - status.target}</span>
               {:else if status.hit}
@@ -134,7 +140,12 @@
             title="Mark done (completion date = today)"
             onclick={() => complete(t)}
           ></button>
-          <span class="title">{t.title}</span>
+          <button
+            type="button"
+            class="title title-btn"
+            title="Edit task"
+            onclick={() => onEdit(t)}
+          >{t.title}</button>
           <label class="date-pick" title="Assign a date → moves to the calendar">
             <span class="lbl">Schedule</span>
             <input
@@ -261,6 +272,19 @@
   }
   .seg.exceeded {
     border-color: color-mix(in srgb, #ffb84d 50%, transparent);
+  }
+  .title-btn {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font: inherit;
+    padding: 0;
+    text-align: left;
+    cursor: pointer;
+  }
+  .title-btn:hover {
+    text-decoration: underline;
+    color: var(--accent);
   }
   .seg-label {
     font-size: 0.72rem;

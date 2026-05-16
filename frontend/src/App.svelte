@@ -39,10 +39,13 @@
     end?: string;
     is_todo?: boolean;
     target_per_week?: number;
+    target_segments?: { weekdays: number[]; target: number }[];
+    show_in_upcoming?: boolean;
   };
 
   let dialogOpen = $state(false);
   let dialogInitial = $state<DialogInitial>({});
+  let editingId = $state<number | null>(null);
   let helpOpen = $state(false);
 
   // Cursor for keyboard navigation. Week: weekday 0..6, hour 6..23.
@@ -132,6 +135,7 @@
   }
 
   function openCreate(prefill: DialogInitial = {}) {
+    editingId = null;
     dialogInitial = {
       task_type: 'single',
       fixed_date: ymd(new Date()),
@@ -140,15 +144,39 @@
     dialogOpen = true;
   }
 
+  function openEdit(t: Task) {
+    editingId = t.id;
+    dialogInitial = {
+      title: t.title,
+      task_type: t.task_type,
+      weekdays: t.weekdays ?? undefined,
+      fixed_date: t.fixed_date ?? undefined,
+      start: t.start_time ?? '',
+      end: t.end_time ?? '',
+      is_todo: t.is_todo,
+      target_per_week: t.target_per_week ?? undefined,
+      target_segments: t.target_segments ?? undefined,
+      show_in_upcoming: t.show_in_upcoming
+    };
+    dialogOpen = true;
+  }
+
   function closeDialog() {
     dialogOpen = false;
+    editingId = null;
   }
 
   async function submitDialog(v: TaskFormValues) {
     try {
-      const t = await api.create(v);
-      tasks = [...tasks, t];
+      if (editingId !== null) {
+        const updated = await api.update(editingId, v);
+        tasks = tasks.map((x) => (x.id === updated.id ? updated : x));
+      } else {
+        const t = await api.create(v);
+        tasks = [...tasks, t];
+      }
       dialogOpen = false;
+      editingId = null;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     }
@@ -409,6 +437,7 @@
       onRemove={remove}
       onCreate={() => openCreate({ task_type: 'single', fixed_date: '', is_todo: true })}
       onCreateGoal={() => openCreate({ task_type: 'weekly_goal', is_todo: true, target_per_week: 3 })}
+      onEdit={openEdit}
     />
   {:else if view === 'month'}
     <MonthView
@@ -459,6 +488,7 @@
 <TaskFormDialog
   open={dialogOpen}
   initial={dialogInitial}
+  editing={editingId !== null}
   onSubmit={submitDialog}
   onClose={closeDialog}
 />

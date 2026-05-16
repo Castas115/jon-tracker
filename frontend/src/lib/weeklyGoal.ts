@@ -65,8 +65,10 @@ export function goalStatus(t: Task, refDateYMD: string): GoalStatus {
 }
 
 /**
- * 1-based rank of [dateYMD] among completions for the segment that includes
- * that weekday. Used by week/month/day rendering to show "(N/T)" in the row title.
+ * Cumulative count of completions in the segment that owns [dateYMD]'s
+ * weekday, counting every completion in the ISO week with date <= dateYMD.
+ * Used to show "(N/T)" in the row title. Handles duplicate completions
+ * (same date twice) correctly because they're counted separately.
  */
 export function weeklyGoalRank(t: Task, dateYMD: string): number {
   const d = new Date(dateYMD + 'T00:00:00');
@@ -74,15 +76,13 @@ export function weeklyGoalRank(t: Task, dateYMD: string): number {
   const segs = t.target_segments ?? [];
   const seg = segs.find((s) => s.weekdays.includes(wd));
   const filter = seg ? seg.weekdays : undefined;
-  const same = t.completed_dates
-    .filter((cd) => {
-      const cdd = new Date(cd + 'T00:00:00');
-      if (!inSameIsoWeek(cdd, d)) return false;
-      if (filter && !filter.includes(weekdayMonFirst(cdd))) return false;
-      return true;
-    })
-    .sort();
-  return same.indexOf(dateYMD) + 1;
+  return t.completed_dates.reduce((acc, cd) => {
+    if (cd > dateYMD) return acc;
+    const cdd = new Date(cd + 'T00:00:00');
+    if (!inSameIsoWeek(cdd, d)) return acc;
+    if (filter && !filter.includes(weekdayMonFirst(cdd))) return acc;
+    return acc + 1;
+  }, 0);
 }
 
 export function weeklyGoalLabel(t: Task, dateYMD: string): string {

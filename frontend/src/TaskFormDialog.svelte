@@ -30,11 +30,12 @@
   type Props = {
     open: boolean;
     initial?: Initial;
+    editing?: boolean;
     onSubmit: (v: TaskFormValues) => void;
     onClose: () => void;
   };
 
-  const { open, initial = {}, onSubmit, onClose }: Props = $props();
+  const { open, initial = {}, editing = false, onSubmit, onClose }: Props = $props();
 
   let dialog: HTMLDialogElement | null = $state(null);
   let titleInput: HTMLInputElement | null = $state(null);
@@ -220,7 +221,7 @@
 
 <dialog bind:this={dialog} onclose={onClose} onclick={handleBackdropClick} onkeydown={onDialogKey}>
   <form onsubmit={handleSubmit}>
-    <h2>New task</h2>
+    <h2>{editing ? 'Edit task' : 'New task'}</h2>
 
     <div class="type-tabs" role="tablist" tabindex="-1">
       <button
