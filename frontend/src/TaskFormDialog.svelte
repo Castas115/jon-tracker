@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { WEEKDAY_LABELS, WEEKDAY_LABELS_LONG, type TaskType } from './lib/types';
+  import { WEEKDAY_LABELS, WEEKDAY_LABELS_LONG, type TaskType, type TargetSegment } from './lib/types';
 
   export type TaskFormValues = {
     title: string;
@@ -10,6 +10,7 @@
     end_time: string | null;
     is_todo: boolean;
     target_per_week: number | null;
+    target_segments: TargetSegment[] | null;
   };
 
   type Initial = Partial<{
@@ -21,6 +22,7 @@
     end: string;
     is_todo: boolean;
     target_per_week: number;
+    target_segments: TargetSegment[];
   }>;
 
   type Props = {
@@ -42,7 +44,9 @@
   let start = $state('');
   let end = $state('');
   let isTodo = $state(false);
-  let targetPerWeek = $state(3);
+  // Weekly-goal: list of segments. Default = single segment covering every
+  // day with target 3 (shorthand for the old flat target_per_week=3).
+  let segments = $state<TargetSegment[]>([{ weekdays: [0, 1, 2, 3, 4, 5, 6], target: 3 }]);
   let localError = $state<string | null>(null);
 
   // Track only `open` so typing in the form doesn't re-run this effect.
@@ -58,7 +62,16 @@
       start = snap.start ?? '';
       end = snap.end ?? '';
       isTodo = snap.is_todo ?? false;
-      targetPerWeek = snap.target_per_week ?? 3;
+      if (snap.target_segments && snap.target_segments.length > 0) {
+        segments = snap.target_segments.map((s) => ({
+          weekdays: [...s.weekdays],
+          target: s.target,
+        }));
+      } else if (snap.target_per_week) {
+        segments = [{ weekdays: [0, 1, 2, 3, 4, 5, 6], target: snap.target_per_week }];
+      } else {
+        segments = [{ weekdays: [0, 1, 2, 3, 4, 5, 6], target: 3 }];
+      }
       localError = null;
       dialog.showModal();
       queueMicrotask(() => titleInput?.focus());
@@ -71,6 +84,24 @@
     weekdays = weekdays.includes(d)
       ? weekdays.filter((x) => x !== d)
       : [...weekdays, d].sort((a, b) => a - b);
+  }
+
+  function toggleSegDay(idx: number, d: number) {
+    const seg = segments[idx];
+    const has = seg.weekdays.includes(d);
+    const next = has ? seg.weekdays.filter((x) => x !== d) : [...seg.weekdays, d].sort((a, b) => a - b);
+    segments[idx] = { ...seg, weekdays: next };
+  }
+
+  function addSegment() {
+    // Pre-select the weekdays that no current segment covers, if any.
+    const used = new Set(segments.flatMap((s) => s.weekdays));
+    const free = [0, 1, 2, 3, 4, 5, 6].filter((d) => !used.has(d));
+    segments = [...segments, { weekdays: free.length > 0 ? free : [], target: 1 }];
+  }
+
+  function removeSegment(idx: number) {
+    segments = segments.filter((_, i) => i !== idx);
   }
 
   const TAB_ORDER: TaskType[] = ['single', 'recurring', 'weekly_goal', 'birthday'];
@@ -91,10 +122,6 @@
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
     const target = e.target as HTMLElement;
 
-    // Keep native cursor stepping on date/time/number inputs (those use arrows
-    // to bump segments) and on multi-line text. Text inputs sacrifice cursor
-    // nav so arrows can switch tabs while typing the title — use Home/End or
-    // Shift+Arrow for selection inside the field.
     if (target instanceof HTMLInputElement) {
       const type = target.type;
       if (type === 'date' || type === 'time' || type === 'number') return;
@@ -133,9 +160,29 @@
       localError = 'Pick a date';
       return;
     }
-    if (taskType === 'weekly_goal' && (!targetPerWeek || targetPerWeek < 1)) {
-      localError = 'Target must be at least 1';
-      return;
+    if (taskType === 'weekly_goal') {
+      if (segments.length === 0) {
+        localError = 'Add at least one segment';
+        return;
+      }
+      const seen = new Set<number>();
+      for (const s of segments) {
+        if (s.weekdays.length === 0) {
+          localError = 'Each segment needs at least one weekday';
+          return;
+        }
+        if (s.target < 1) {
+          localError = 'Targets must be at least 1';
+          return;
+        }
+        for (const w of s.weekdays) {
+          if (seen.has(w)) {
+            localError = 'A weekday can belong to only one segment';
+            return;
+          }
+          seen.add(w);
+        }
+      }
     }
 
     const isBirthday = taskType === 'birthday';
@@ -143,6 +190,10 @@
     const isWeekly = taskType === 'weekly_goal';
     // Backlog and weekly_goal items must be actionable.
     const finalIsTodo = isBirthday ? false : isBacklog || isWeekly ? true : isTodo;
+
+    // For weekly_goal: send target_segments. Keep target_per_week as the sum
+    // for back-compat with anything that still reads the flat target.
+    const flatSum = isWeekly ? segments.reduce((a, s) => a + s.target, 0) : null;
 
     onSubmit({
       title: t,
@@ -152,7 +203,8 @@
       start_time: isBirthday || isBacklog || isWeekly ? null : (start || null),
       end_time: isBirthday || isBacklog || isWeekly ? null : (start && end ? end : null),
       is_todo: finalIsTodo,
-      target_per_week: isWeekly ? targetPerWeek : null
+      target_per_week: flatSum,
+      target_segments: isWeekly ? segments.map((s) => ({ weekdays: [...s.weekdays], target: s.target })) : null,
     });
   }
 
@@ -249,19 +301,53 @@
         </div>
       </div>
     {:else if taskType === 'weekly_goal'}
-      <label class="field">
-        <span>Times per week</span>
-        <input
-          type="number"
-          min="1"
-          max="99"
-          bind:value={targetPerWeek}
-          required
-        />
-      </label>
+      <div class="field">
+        <span>Segments</span>
+        {#each segments as seg, idx (idx)}
+          <div class="segment">
+            <div class="days small">
+              {#each WEEKDAY_LABELS as label, i}
+                <button
+                  type="button"
+                  class="day"
+                  class:on={seg.weekdays.includes(i)}
+                  aria-label={WEEKDAY_LABELS_LONG[i]}
+                  aria-pressed={seg.weekdays.includes(i)}
+                  onclick={() => toggleSegDay(idx, i)}
+                >
+                  {label}
+                </button>
+              {/each}
+            </div>
+            <div class="segment-controls">
+              <label class="inline">
+                <span>Target</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="99"
+                  bind:value={segments[idx].target}
+                />
+              </label>
+              {#if segments.length > 1}
+                <button
+                  type="button"
+                  class="del"
+                  aria-label="Remove segment"
+                  title="Remove"
+                  onclick={() => removeSegment(idx)}
+                >
+                  ×
+                </button>
+              {/if}
+            </div>
+          </div>
+        {/each}
+        <button type="button" class="add-seg" onclick={addSegment}>+ Add segment</button>
+      </div>
       <p class="hint">
-        Lives in the backlog. Each completion shows up on its day as
-        <em>{title || 'Task'} (k/{targetPerWeek})</em>.
+        Split the week into buckets, e.g. Mon-Thu × 2 and Fri-Sun × 1. Each
+        bucket counts its own completions.
       </p>
     {:else}
       <label class="field">
@@ -385,6 +471,10 @@
     grid-template-columns: repeat(7, 1fr);
     gap: 4px;
   }
+  .days.small .day {
+    padding: 0.35rem 0;
+    font-size: 0.72rem;
+  }
   .day {
     background: var(--bg-3);
     border: 1px solid var(--border);
@@ -403,6 +493,69 @@
     color: var(--accent-fg);
     border-color: var(--accent);
     font-weight: 600;
+  }
+
+  .segment {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem;
+  }
+  .segment-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .inline {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 1;
+    font-size: 0.78rem;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .inline input {
+    width: 4rem;
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 0.95rem;
+    color: var(--fg);
+  }
+  .del {
+    background: transparent;
+    color: var(--fg-muted);
+    border: 1px solid var(--border);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+  }
+  .del:hover {
+    color: var(--danger);
+    border-color: var(--danger);
+  }
+  .add-seg {
+    align-self: flex-start;
+    background: transparent;
+    color: var(--accent);
+    border: 1px dashed color-mix(in srgb, var(--accent) 50%, transparent);
+    padding: 0.4rem 0.7rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.8rem;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+  .add-seg:hover {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
   }
 
   .row {

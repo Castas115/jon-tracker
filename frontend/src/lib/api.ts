@@ -22,6 +22,7 @@ export type CreatePayload = {
   end_time?: string | null;
   is_todo?: boolean;
   target_per_week?: number | null;
+  target_segments?: { weekdays: number[]; target: number }[] | null;
 };
 
 export type CalendarEvent = {

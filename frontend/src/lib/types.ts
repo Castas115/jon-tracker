@@ -1,5 +1,10 @@
 export type TaskType = 'recurring' | 'single' | 'birthday' | 'weekly_goal';
 
+export type TargetSegment = {
+  weekdays: number[]; // 0=Mon … 6=Sun, at least one
+  target: number; // completions needed within this weekday bucket per ISO week
+};
+
 export type Task = {
   id: number;
   title: string;
@@ -9,7 +14,8 @@ export type Task = {
   start_time: string | null; // "HH:MM" or null = all day
   end_time: string | null;
   is_todo: boolean; // when true, shows a checkbox and tracks completion. Always false for birthday, always true for weekly_goal
-  target_per_week: number | null; // weekly_goal: completions per ISO week to hit the target
+  target_per_week: number | null; // weekly_goal: flat target. Ignored when target_segments is set.
+  target_segments: TargetSegment[] | null; // weekly_goal: weekday-bucketed targets
   created_at: string;
   completed_dates: string[];
 };

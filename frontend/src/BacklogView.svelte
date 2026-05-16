@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { isoWeekNumber, mondayOf, ymd } from './lib/dates';
+  import { isoWeekNumber, ymd } from './lib/dates';
   import type { Task } from './lib/types';
+  import { goalStatus, segmentLabel } from './lib/weeklyGoal';
 
   type Props = {
     tasks: Task[];
@@ -28,13 +29,6 @@
 
   const todayYMD = ymd(new Date());
   const thisWeekISO = isoWeekNumber(new Date());
-
-  function countThisWeek(t: Task): number {
-    return t.completed_dates.filter((d) => {
-      const date = new Date(d + 'T00:00:00');
-      return isoWeekNumber(date) === thisWeekISO && date.getFullYear() === new Date().getFullYear();
-    }).length;
-  }
 
   const goals = $derived(
     tasks
@@ -69,11 +63,9 @@
     <h3 class="section-label">Weekly goals · ISO W{thisWeekISO}</h3>
     <ul class="goals">
       {#each goals as t (t.id)}
-        {@const done = countThisWeek(t)}
-        {@const target = t.target_per_week ?? 0}
+        {@const status = goalStatus(t, todayYMD)}
         {@const todayDone = isDoneToday(t)}
-        {@const hit = target > 0 && done >= target}
-        <li class:hit>
+        <li class:hit={status.hit} class:exceeded={status.exceeded}>
           <button
             class="goal-check"
             type="button"
@@ -84,13 +76,38 @@
           >
             {#if todayDone}✓{:else}＋{/if}
           </button>
-          <span class="title">{t.title}</span>
-          <span class="progress" aria-label={`${done} of ${target} this week`}>
-            {#each Array(Math.max(target, done)) as _, i}
-              <span class="dot" class:filled={i < done} class:over={i >= target}></span>
-            {/each}
-            <span class="ratio">{done}/{target}</span>
-          </span>
+          <div class="goal-body">
+            <div class="goal-head">
+              <span class="title">{t.title}</span>
+              {#if status.exceeded}
+                <span class="badge over" title="Smashed it">⭐ +{status.done - status.target}</span>
+              {:else if status.hit}
+                <span class="badge hit" title="Goal hit">🎯 hit</span>
+              {/if}
+            </div>
+            {#if status.segments.length === 0}
+              <span class="progress" aria-label={`${status.done} of ${status.target} this week`}>
+                {#each Array(Math.max(status.target, status.done)) as _, i}
+                  <span class="dot" class:filled={i < status.done} class:over={i >= status.target}></span>
+                {/each}
+                <span class="ratio">{status.done}/{status.target}</span>
+              </span>
+            {:else}
+              <div class="seg-progress">
+                {#each status.segments as sp}
+                  <div class="seg" class:hit={sp.hit} class:exceeded={sp.exceeded}>
+                    <span class="seg-label">{segmentLabel(sp.segment)}</span>
+                    <span class="progress">
+                      {#each Array(Math.max(sp.segment.target, sp.done)) as _, i}
+                        <span class="dot" class:filled={i < sp.done} class:over={i >= sp.segment.target}></span>
+                      {/each}
+                      <span class="ratio">{sp.done}/{sp.segment.target}</span>
+                    </span>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
           <button
             class="del"
             type="button"
@@ -180,10 +197,77 @@
   }
 
   .goals li {
-    grid-template-columns: auto 1fr auto auto;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.6rem;
+    align-items: start;
+    padding: 0.6rem 0.75rem;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    list-style: none;
   }
   .goals li.hit {
     border-color: color-mix(in srgb, var(--today) 70%, var(--border));
+    background: color-mix(in srgb, var(--today) 6%, var(--bg-2));
+  }
+  .goals li.exceeded {
+    border-color: color-mix(in srgb, #ffb84d 70%, var(--border));
+    background: color-mix(in srgb, #ffb84d 8%, var(--bg-2));
+  }
+  .goal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+  .goal-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .badge {
+    font-size: 0.72rem;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--bg-3);
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+  }
+  .badge.hit {
+    background: color-mix(in srgb, var(--today) 25%, var(--bg-3));
+    color: var(--today);
+  }
+  .badge.over {
+    background: color-mix(in srgb, #ffb84d 25%, var(--bg-3));
+    color: #ffb84d;
+  }
+  .seg-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .seg {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 2px 6px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+  }
+  .seg.hit {
+    border-color: color-mix(in srgb, var(--today) 40%, transparent);
+  }
+  .seg.exceeded {
+    border-color: color-mix(in srgb, #ffb84d 50%, transparent);
+  }
+  .seg-label {
+    font-size: 0.72rem;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    min-width: 4.2rem;
   }
 
   .goal-check {
