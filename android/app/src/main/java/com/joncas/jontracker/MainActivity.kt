@@ -7,11 +7,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.joncas.jontracker.data.Prefs
+import com.joncas.jontracker.data.TaskRepo
 import com.joncas.jontracker.ui.AppScaffold
+import com.joncas.jontracker.ui.TaskFormSheet
 import com.joncas.jontracker.ui.theme.JonTrackerTheme
 import kotlinx.coroutines.launch
 
@@ -24,6 +29,8 @@ class MainActivity : ComponentActivity() {
             val theme by Prefs.theme(context).collectAsState(initial = "dark")
             val isDark = theme != "light"
 
+            var formOpen by remember { mutableStateOf(false) }
+
             JonTrackerTheme(darkTheme = isDark) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     AppScaffold(
@@ -33,8 +40,19 @@ class MainActivity : ComponentActivity() {
                                 Prefs.setTheme(context, if (isDark) "light" else "dark")
                             }
                         },
-                        onCreate = { /* dialog wired in task 8 */ },
+                        onCreate = { formOpen = true },
                     )
+                    if (formOpen) {
+                        TaskFormSheet(
+                            onDismiss = { formOpen = false },
+                            onSubmit = { payload ->
+                                scope.launch {
+                                    TaskRepo.create(payload)
+                                    formOpen = false
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }
