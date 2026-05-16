@@ -3,6 +3,12 @@ package com.joncas.jontracker.api
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class TargetSegment(
+    val weekdays: List<Int>,
+    val target: Int
+)
+
+@Serializable
 data class Task(
     val id: Int,
     val title: String,
@@ -13,6 +19,7 @@ data class Task(
     val end_time: String? = null,
     val is_todo: Boolean,
     val target_per_week: Int? = null,
+    val target_segments: List<TargetSegment>? = null,
     val created_at: String,
     val completed_dates: List<String> = emptyList()
 )
@@ -26,7 +33,8 @@ data class TaskPayload(
     val start_time: String? = null,
     val end_time: String? = null,
     val is_todo: Boolean? = null,
-    val target_per_week: Int? = null
+    val target_per_week: Int? = null,
+    val target_segments: List<TargetSegment>? = null
 )
 
 @Serializable

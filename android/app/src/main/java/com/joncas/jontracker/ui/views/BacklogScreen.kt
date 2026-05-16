@@ -49,6 +49,10 @@ import com.joncas.jontracker.api.Task
 import com.joncas.jontracker.api.TaskPayload
 import com.joncas.jontracker.data.TaskRepo
 import com.joncas.jontracker.data.completionsThisWeek
+import com.joncas.jontracker.data.GoalStatus
+import com.joncas.jontracker.data.SegmentProgress
+import com.joncas.jontracker.data.goalStatus
+import com.joncas.jontracker.data.segmentLabel
 import com.joncas.jontracker.ui.LocalEditTask
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -235,18 +239,18 @@ private fun GoalRow(
     onDelete: () -> Unit,
 ) {
     val edit = LocalEditTask.current
-    val done = goal.completionsThisWeek(today)
-    val target = goal.target_per_week ?: 0
+    val status = goal.goalStatus(today)
     val todayDone = goal.completed_dates.contains(today.toString())
-    val hit = target > 0 && done >= target
+    val bg = when {
+        status.exceeded -> Color(0x33FFB84D)
+        status.hit -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(
-                if (hit) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                else MaterialTheme.colorScheme.surfaceVariant
-            )
+            .background(bg)
             .combinedClickable(
                 onClick = { edit(goal) },
                 onLongClick = { edit(goal) },
@@ -274,35 +278,78 @@ private fun GoalRow(
         }
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(goal.title, style = MaterialTheme.typography.bodyMedium)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                val total = maxOf(target, done)
-                repeat(total) { i ->
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .padding(end = 2.dp)
-                            .clip(CircleShape)
-                            .background(
-                                when {
-                                    i >= done -> MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                                    i >= target -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                                    else -> MaterialTheme.colorScheme.primary
-                                }
-                            ),
-                    )
-                    Spacer(modifier = Modifier.width(2.dp))
+                Text(goal.title, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                StatusBadge(status)
+            }
+            if (status.segments.isEmpty()) {
+                ProgressDots(done = status.done, target = status.target)
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    status.segments.forEach { sp ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                segmentLabel(sp.segment),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.width(70.dp),
+                            )
+                            ProgressDots(done = sp.done, target = sp.segment.target)
+                        }
+                    }
                 }
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    "$done/$target",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
         IconButton(onClick = onDelete) {
             Icon(Icons.Filled.Close, contentDescription = "Delete")
         }
+    }
+}
+
+@Composable
+private fun StatusBadge(status: GoalStatus) {
+    if (!status.hit && !status.exceeded) return
+    val (label, color) = if (status.exceeded)
+        "⭐ +${status.done - status.target}" to Color(0xFFFFB84D)
+    else
+        "🎯 hit" to MaterialTheme.colorScheme.primary
+    Text(
+        label,
+        style = MaterialTheme.typography.labelSmall,
+        color = color,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(color.copy(alpha = 0.15f))
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+    )
+}
+
+@Composable
+private fun ProgressDots(done: Int, target: Int) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        val total = maxOf(target, done)
+        repeat(total) { i ->
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .padding(end = 2.dp)
+                    .clip(CircleShape)
+                    .background(
+                        when {
+                            i >= done -> MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                            i >= target -> Color(0xFFFFB84D)
+                            else -> MaterialTheme.colorScheme.primary
+                        }
+                    ),
+            )
+            Spacer(modifier = Modifier.width(2.dp))
+        }
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            "$done/$target",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

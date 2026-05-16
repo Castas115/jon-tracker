@@ -1,5 +1,6 @@
 package com.joncas.jontracker.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,12 +10,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -34,10 +40,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.joncas.jontracker.api.TargetSegment
 import com.joncas.jontracker.api.Task
 import com.joncas.jontracker.api.TaskPayload
 import java.time.Instant
@@ -46,13 +56,15 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val ISO = DateTimeFormatter.ISO_LOCAL_DATE
-private val WEEKDAY_LABELS = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+private val WEEKDAY_LABELS = listOf("M", "T", "W", "T", "F", "S", "S")
 private val TASK_TYPES = listOf(
     "single" to "Single",
     "recurring" to "Recurring",
     "birthday" to "Birthday",
     "weekly_goal" to "Goal",
 )
+
+private data class SegmentDraft(val weekdays: MutableSet<Int>, var target: Int)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,14 +87,45 @@ fun TaskFormSheet(
     var startTime by remember { mutableStateOf(existing?.start_time) }
     var endTime by remember { mutableStateOf(existing?.end_time) }
     var isTodo by remember { mutableStateOf(existing?.is_todo ?: true) }
-    var targetPerWeek by remember { mutableStateOf(existing?.target_per_week ?: 3) }
+
+    // Weekly-goal segments. Initial state mirrors existing task if it has
+    // segments; falls back to a single segment covering all 7 days with the
+    // legacy target_per_week (or 3) as target.
+    val initialSegments = remember(existing) {
+        when {
+            existing?.target_segments?.isNotEmpty() == true ->
+                existing.target_segments!!.map { SegmentDraft(it.weekdays.toMutableSet(), it.target) }
+            existing?.target_per_week != null ->
+                listOf(SegmentDraft((0..6).toMutableSet(), existing.target_per_week))
+            else -> listOf(SegmentDraft((0..6).toMutableSet(), 3))
+        }
+    }
+    val segments: SnapshotStateList<SegmentDraft> = remember { initialSegments.toMutableStateList() }
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showStartTime by remember { mutableStateOf(false) }
     var showEndTime by remember { mutableStateOf(false) }
 
+    val segError: String? = remember(segments.toList()) {
+        if (taskType != "weekly_goal") null
+        else {
+            val seen = mutableSetOf<Int>()
+            var err: String? = null
+            for (s in segments) {
+                if (s.weekdays.isEmpty()) { err = "Each segment needs at least one weekday"; break }
+                if (s.target < 1) { err = "Targets must be ≥1"; break }
+                for (w in s.weekdays) {
+                    if (!seen.add(w)) { err = "A weekday can only belong to one segment"; break }
+                }
+                if (err != null) break
+            }
+            err
+        }
+    }
+
     val canSubmit = title.isNotBlank() && when (taskType) {
         "recurring" -> weekdays.isNotEmpty()
+        "weekly_goal" -> segments.isNotEmpty() && segError == null
         else -> true
     }
 
@@ -143,6 +186,37 @@ fun TaskFormSheet(
                 }
             }
 
+            if (taskType == "weekly_goal") {
+                Text("Segments", style = MaterialTheme.typography.labelMedium)
+                segments.forEachIndexed { idx, seg ->
+                    SegmentEditor(
+                        seg = seg,
+                        canRemove = segments.size > 1,
+                        onToggleDay = { d ->
+                            if (seg.weekdays.contains(d)) seg.weekdays.remove(d) else seg.weekdays.add(d)
+                            // Force recomposition by reassigning the list slot.
+                            segments[idx] = SegmentDraft(seg.weekdays.toMutableSet(), seg.target)
+                        },
+                        onTargetChange = { t ->
+                            segments[idx] = SegmentDraft(seg.weekdays.toMutableSet(), t.coerceAtLeast(1))
+                        },
+                        onRemove = { segments.removeAt(idx) },
+                    )
+                }
+                OutlinedButton(onClick = {
+                    val used = segments.flatMap { it.weekdays }.toSet()
+                    val free = (0..6).filterNot { used.contains(it) }.toMutableSet()
+                    segments.add(SegmentDraft(if (free.isNotEmpty()) free else mutableSetOf(), 1))
+                }) { Text("+ Add segment") }
+                if (segError != null) {
+                    Text(
+                        segError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+
             if (taskType == "single" || taskType == "birthday") {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Date: ${fixedDate.format(ISO)}", modifier = Modifier.weight(1f))
@@ -174,17 +248,6 @@ fun TaskFormSheet(
                 }
             }
 
-            if (taskType == "weekly_goal") {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Target per week", modifier = Modifier.weight(1f))
-                    OutlinedButton(onClick = { if (targetPerWeek > 1) targetPerWeek-- }) { Text("−") }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("$targetPerWeek", style = MaterialTheme.typography.titleMedium)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    OutlinedButton(onClick = { if (targetPerWeek < 14) targetPerWeek++ }) { Text("+") }
-                }
-            }
-
             Spacer(modifier = Modifier.width(0.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -199,19 +262,25 @@ fun TaskFormSheet(
                 Button(
                     enabled = canSubmit,
                     onClick = {
+                        val isWeekly = taskType == "weekly_goal"
+                        val finalSegments = if (isWeekly) {
+                            segments.map { TargetSegment(it.weekdays.sorted(), it.target) }
+                        } else null
+                        val flatSum = finalSegments?.sumOf { it.target }
                         val payload = TaskPayload(
                             title = title.trim(),
                             task_type = taskType,
                             weekdays = if (taskType == "recurring") weekdays.sorted() else null,
                             fixed_date = if (taskType == "single" || taskType == "birthday") fixedDate.format(ISO) else null,
-                            start_time = startTime,
-                            end_time = endTime,
+                            start_time = if (isWeekly) null else startTime,
+                            end_time = if (isWeekly) null else endTime,
                             is_todo = when (taskType) {
                                 "birthday" -> false
                                 "weekly_goal" -> true
                                 else -> isTodo
                             },
-                            target_per_week = if (taskType == "weekly_goal") targetPerWeek else null,
+                            target_per_week = flatSum,
+                            target_segments = finalSegments,
                         )
                         onSubmit(payload)
                     },
@@ -271,6 +340,47 @@ fun TaskFormSheet(
                 showEndTime = false
             },
         )
+    }
+}
+
+@Composable
+private fun SegmentEditor(
+    seg: SegmentDraft,
+    canRemove: Boolean,
+    onToggleDay: (Int) -> Unit,
+    onTargetChange: (Int) -> Unit,
+    onRemove: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            WEEKDAY_LABELS.forEachIndexed { i, lbl ->
+                FilterChip(
+                    selected = seg.weekdays.contains(i),
+                    onClick = { onToggleDay(i) },
+                    label = { Text(lbl, style = MaterialTheme.typography.labelSmall) },
+                )
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Target", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+            OutlinedButton(onClick = { onTargetChange(seg.target - 1) }) { Text("−") }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("${seg.target}", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.width(8.dp))
+            OutlinedButton(onClick = { onTargetChange(seg.target + 1) }) { Text("+") }
+            if (canRemove) {
+                IconButton(onClick = onRemove) {
+                    Icon(Icons.Filled.Close, contentDescription = "Remove segment")
+                }
+            }
+        }
     }
 }
 
