@@ -91,8 +91,12 @@ def toggle_completion(
             TaskCompletion.completed_on == payload.completed_on,
         )
     )
+    # Weekly goals can be completed multiple times on the same day (e.g.
+    # meditate twice on Monday counts as 2 toward the target). Other task
+    # types stay binary per date — at most one completion row per (task, day).
+    is_goal = task.task_type == "weekly_goal"
     if payload.action == "add":
-        if not existing:
+        if is_goal or not existing:
             db.add(TaskCompletion(task_id=task_id, completed_on=payload.completed_on))
     elif payload.action == "remove":
         if existing:

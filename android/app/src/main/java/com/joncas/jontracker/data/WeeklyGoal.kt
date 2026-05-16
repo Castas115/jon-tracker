@@ -61,20 +61,23 @@ fun Task.goalStatus(refDate: LocalDate): GoalStatus {
     )
 }
 
-/** 1-based rank of [date] among completions in the segment that owns its weekday. */
+/**
+ * Cumulative number of completions in the segment that owns [date]'s weekday,
+ * counting every completion in the ISO week with date <= [date]. Handles
+ * duplicate completions for the same day (weekly goals can be ticked many
+ * times per day) by counting each separately.
+ */
 fun Task.weeklyGoalRank(date: LocalDate): Int {
     val wd = date.weekdayMonFirst()
     val filter = (target_segments ?: emptyList()).firstOrNull { it.weekdays.contains(wd) }?.weekdays
     val refWeek = date.get(WeekFields.ISO.weekOfWeekBasedYear())
     val refYear = date.year
-    val key = date.toString()
-    val same = completed_dates
-        .mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }
-        .filter { it.year == refYear && it.get(WeekFields.ISO.weekOfWeekBasedYear()) == refWeek }
-        .filter { filter == null || filter.contains(it.weekdayMonFirst()) }
-        .map { it.toString() }
-        .sorted()
-    return same.indexOf(key) + 1
+    return completed_dates.count { d ->
+        val cd = runCatching { LocalDate.parse(d) }.getOrNull() ?: return@count false
+        if (cd.year != refYear || cd.get(WeekFields.ISO.weekOfWeekBasedYear()) != refWeek) return@count false
+        if (cd.isAfter(date)) return@count false
+        if (filter == null) true else filter.contains(cd.weekdayMonFirst())
+    }
 }
 
 fun Task.displayTitle(date: LocalDate): String {
