@@ -28,6 +28,10 @@
       "Bash(ruff:*)",
       "Bash(pytest:*)",
 
+      "Bash(./gradlew:*)",
+      "Bash(gradlew:*)",
+      "Bash(adb:*)",
+
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
