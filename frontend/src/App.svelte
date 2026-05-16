@@ -154,9 +154,9 @@
     }
   }
 
-  async function toggle(t: Task, date: string) {
+  async function toggle(t: Task, date: string, action: 'toggle' | 'add' | 'remove' = 'toggle') {
     try {
-      const updated = await api.toggle(t.id, date);
+      const updated = await api.toggle(t.id, date, action);
       tasks = tasks.map((x) => (x.id === t.id ? updated : x));
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);

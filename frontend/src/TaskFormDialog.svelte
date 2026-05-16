@@ -11,6 +11,7 @@
     is_todo: boolean;
     target_per_week: number | null;
     target_segments: TargetSegment[] | null;
+    show_in_upcoming: boolean;
   };
 
   type Initial = Partial<{
@@ -23,6 +24,7 @@
     is_todo: boolean;
     target_per_week: number;
     target_segments: TargetSegment[];
+    show_in_upcoming: boolean;
   }>;
 
   type Props = {
@@ -44,6 +46,7 @@
   let start = $state('');
   let end = $state('');
   let isTodo = $state(false);
+  let showInUpcoming = $state(true);
   // Weekly-goal: list of segments. Default = single segment covering every
   // day with target 3 (shorthand for the old flat target_per_week=3).
   let segments = $state<TargetSegment[]>([{ weekdays: [0, 1, 2, 3, 4, 5, 6], target: 3 }]);
@@ -62,6 +65,7 @@
       start = snap.start ?? '';
       end = snap.end ?? '';
       isTodo = snap.is_todo ?? false;
+      showInUpcoming = snap.show_in_upcoming ?? true;
       if (snap.target_segments && snap.target_segments.length > 0) {
         segments = snap.target_segments.map((s) => ({
           weekdays: [...s.weekdays],
@@ -205,6 +209,7 @@
       is_todo: finalIsTodo,
       target_per_week: flatSum,
       target_segments: isWeekly ? segments.map((s) => ({ weekdays: [...s.weekdays], target: s.target })) : null,
+      show_in_upcoming: showInUpcoming,
     });
   }
 
@@ -384,6 +389,11 @@
     {:else if taskType === 'birthday'}
       <p class="hint">Birthdays repeat every year on the same month and day.</p>
     {/if}
+
+    <label class="todo">
+      <input type="checkbox" bind:checked={showInUpcoming} />
+      <span>Show in upcoming panel</span>
+    </label>
 
     {#if localError}
       <p class="err">{localError}</p>

@@ -23,6 +23,7 @@ export type CreatePayload = {
   is_todo?: boolean;
   target_per_week?: number | null;
   target_segments?: { weekdays: number[]; target: number }[] | null;
+  show_in_upcoming?: boolean;
 };
 
 export type CalendarEvent = {
@@ -52,10 +53,10 @@ export const api = {
     }),
   remove: (id: number) =>
     http<void>(`/tasks/${id}`, { method: 'DELETE' }),
-  toggle: (id: number, completed_on: string) =>
+  toggle: (id: number, completed_on: string, action: 'toggle' | 'add' | 'remove' = 'toggle') =>
     http<Task>(`/tasks/${id}/toggle`, {
       method: 'POST',
-      body: JSON.stringify({ completed_on })
+      body: JSON.stringify({ completed_on, action })
     }),
 
   calendarStatus: () => http<{ configured: boolean }>('/calendar/status'),

@@ -16,6 +16,7 @@ export type Task = {
   is_todo: boolean; // when true, shows a checkbox and tracks completion. Always false for birthday, always true for weekly_goal
   target_per_week: number | null; // weekly_goal: flat target. Ignored when target_segments is set.
   target_segments: TargetSegment[] | null; // weekly_goal: weekday-bucketed targets
+  show_in_upcoming: boolean; // false → hide from the day-view "Upcoming" panel
   created_at: string;
   completed_dates: string[];
 };

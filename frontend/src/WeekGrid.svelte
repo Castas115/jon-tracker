@@ -11,7 +11,7 @@
     weekStartYMD: string;
     focusedWeekday?: number;
     focusedHour?: number;
-    onToggle: (task: Task, dateYMD: string) => void;
+    onToggle: (task: Task, dateYMD: string, action?: 'toggle' | 'add' | 'remove') => void;
     onRemove: (task: Task) => void;
     onCreate: (weekday: number, dateYMD: string, start: string, end: string) => void;
   };
@@ -246,12 +246,19 @@
             class:info={!t.is_todo}
             class:bday-task={t.task_type === 'birthday'}
             type="button"
-            onclick={() => t.is_todo && onToggle(t, dateYMD)}
+            onclick={() => {
+              if (!t.is_todo) return;
+              if (t.task_type === 'weekly_goal') onToggle(t, dateYMD, 'add');
+              else onToggle(t, dateYMD);
+            }}
             oncontextmenu={(e) => {
               e.preventDefault();
-              onRemove(t);
+              if (t.task_type === 'weekly_goal') onToggle(t, dateYMD, 'remove');
+              else onRemove(t);
             }}
-            title={`${t.task_type === 'birthday' ? '🎂 ' : ''}${t.title}${t.is_todo ? ' (click: toggle · right-click: delete)' : ' (right-click: delete)'}`}
+            title={t.task_type === 'weekly_goal'
+              ? `${t.title} (left-click: +1 · right-click: -1)`
+              : `${t.task_type === 'birthday' ? '🎂 ' : ''}${t.title}${t.is_todo ? ' (click: toggle · right-click: delete)' : ' (right-click: delete)'}`}
           >
             {t.task_type === 'birthday' ? '🎂 ' : ''}{displayTitle(t, dateYMD)}
           </button>
@@ -318,12 +325,19 @@
             class:info={!t.is_todo}
             type="button"
             style={blockStyle(t)}
-            onclick={() => t.is_todo && onToggle(t, dateYMD)}
+            onclick={() => {
+              if (!t.is_todo) return;
+              if (t.task_type === 'weekly_goal') onToggle(t, dateYMD, 'add');
+              else onToggle(t, dateYMD);
+            }}
             oncontextmenu={(e) => {
               e.preventDefault();
-              onRemove(t);
+              if (t.task_type === 'weekly_goal') onToggle(t, dateYMD, 'remove');
+              else onRemove(t);
             }}
-            title={`${t.title} ${fmtTime(t)}${t.is_todo ? ' (click: toggle · right-click: delete)' : ' (right-click: delete)'}`}
+            title={t.task_type === 'weekly_goal'
+              ? `${t.title} ${fmtTime(t)} (left-click: +1 · right-click: -1)`
+              : `${t.title} ${fmtTime(t)}${t.is_todo ? ' (click: toggle · right-click: delete)' : ' (right-click: delete)'}`}
           >
             <span class="b-title">{t.title}</span>
             <span class="b-time">{fmtTime(t)}</span>

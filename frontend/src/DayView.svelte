@@ -9,7 +9,7 @@
     tasks: Task[];
     events?: CalendarEvent[];
     focusedDate?: string;
-    onToggle: (task: Task, dateYMD: string) => void;
+    onToggle: (task: Task, dateYMD: string, action?: 'toggle' | 'add' | 'remove') => void;
     onRemove: (task: Task) => void;
     onCreate: (weekday: number, dateYMD: string, start: string, end: string) => void;
   };
@@ -225,6 +225,7 @@
       const k = ymd(d);
       const items: UpcomingItem[] = [];
       for (const t of tasks) {
+        if (t.show_in_upcoming === false) continue;
         if (!matchesOn(t, d, k)) continue;
         items.push({
           kind: 'task',
@@ -321,12 +322,19 @@
           class:done
           class:info={!t.is_todo}
           type="button"
-          onclick={() => t.is_todo && onToggle(t, focusedDate)}
+          onclick={() => {
+            if (!t.is_todo) return;
+            if (t.task_type === 'weekly_goal') onToggle(t, focusedDate, 'add');
+            else onToggle(t, focusedDate);
+          }}
           oncontextmenu={(e) => {
             e.preventDefault();
-            onRemove(t);
+            if (t.task_type === 'weekly_goal') onToggle(t, focusedDate, 'remove');
+            else onRemove(t);
           }}
-          title={displayTitle(t, focusedDate)}
+          title={t.task_type === 'weekly_goal'
+            ? `${displayTitle(t, focusedDate)} (left-click: +1 · right-click: -1)`
+            : displayTitle(t, focusedDate)}
         >
           {displayTitle(t, focusedDate)}
         </button>
@@ -388,12 +396,19 @@
               class:info={!t.is_todo}
               type="button"
               style={blockStyle(sm, em)}
-              onclick={() => t.is_todo && onToggle(t, focusedDate)}
+              onclick={() => {
+                if (!t.is_todo) return;
+                if (t.task_type === 'weekly_goal') onToggle(t, focusedDate, 'add');
+                else onToggle(t, focusedDate);
+              }}
               oncontextmenu={(e) => {
                 e.preventDefault();
-                onRemove(t);
+                if (t.task_type === 'weekly_goal') onToggle(t, focusedDate, 'remove');
+                else onRemove(t);
               }}
-              title={`${t.title} ${fmtTime(t)}${t.is_todo ? ' (click: toggle · right-click: delete)' : ' (right-click: delete)'}`}
+              title={t.task_type === 'weekly_goal'
+                ? `${t.title} ${fmtTime(t)} (left-click: +1 · right-click: -1)`
+                : `${t.title} ${fmtTime(t)}${t.is_todo ? ' (click: toggle · right-click: delete)' : ' (right-click: delete)'}`}
             >
               <span class="b-title">{t.title}</span>
               <span class="b-time">{fmtTime(t)}</span>
