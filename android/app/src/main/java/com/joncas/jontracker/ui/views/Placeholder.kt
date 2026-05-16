@@ -8,9 +8,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
 @Composable
-fun DayScreen() = Placeholder("Day")
-
-@Composable
 fun WeekScreen() = Placeholder("Week")
 
 @Composable
