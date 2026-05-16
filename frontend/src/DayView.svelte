@@ -107,7 +107,11 @@
       const bd = new Date(t.fixed_date + 'T00:00:00');
       return bd.getMonth() === dayDate.getMonth() && bd.getDate() === dayDate.getDate();
     }
-    if (t.task_type === 'weekly_goal') return t.completed_dates.includes(k);
+    if (t.task_type === 'weekly_goal') {
+      const segs = t.target_segments ?? [];
+      if (segs.length === 0) return true;
+      return segs.some((s) => s.weekdays.includes(wd));
+    }
     return false;
   }
 

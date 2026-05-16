@@ -62,7 +62,9 @@
           return bd.getMonth() === d.getMonth() && bd.getDate() === d.getDate();
         }
         if (t.task_type === 'weekly_goal') {
-          return t.completed_dates.includes(k);
+          const segs = t.target_segments ?? [];
+          if (segs.length === 0) return true;
+          return segs.some((s) => s.weekdays.includes(wd));
         }
         return false;
       })

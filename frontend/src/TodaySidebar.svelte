@@ -1,6 +1,7 @@
 <script lang="ts">
   import { weekdayMonFirst, ymd } from './lib/dates';
   import { type Task } from './lib/types';
+  import { weeklyGoalLabel } from './lib/weeklyGoal';
 
   type Props = {
     tasks: Task[];
@@ -20,6 +21,11 @@
       const bd = new Date(t.fixed_date + 'T00:00:00');
       return bd.getMonth() === todayDate.getMonth() && bd.getDate() === todayDate.getDate();
     }
+    if (t.task_type === 'weekly_goal') {
+      const segs = t.target_segments ?? [];
+      if (segs.length === 0) return true;
+      return segs.some((s) => s.weekdays.includes(todayWD));
+    }
     return false;
   }
 
@@ -29,7 +35,7 @@
 
   const checklist = $derived(
     tasks
-      .filter((t) => matchesToday(t) && t.is_todo && t.task_type !== 'weekly_goal')
+      .filter((t) => matchesToday(t) && t.is_todo)
       .sort((a, b) => {
         const ta = a.start_time ?? '99:99';
         const tb = b.start_time ?? '99:99';
@@ -56,7 +62,7 @@
                 checked={done}
                 onchange={() => onToggle(t, todayYMD)}
               />
-              <span class="t-title">{t.title}</span>
+              <span class="t-title">{t.task_type === 'weekly_goal' ? weeklyGoalLabel(t, todayYMD) : t.title}</span>
               {#if t.start_time}<span class="t-time">{t.start_time}</span>{/if}
             </label>
           </li>
