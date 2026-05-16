@@ -319,7 +319,7 @@ private fun SectionLabel(text: String) {
 @Composable
 private fun TaskRow(task: Task, date: LocalDate, onToggle: () -> Unit) {
     val done = task.isCompletedOn(date)
-    val actionable = task.is_todo && task.task_type != "weekly_goal"
+    val actionable = task.is_todo
     val edit = LocalEditTask.current
     Row(
         modifier = Modifier

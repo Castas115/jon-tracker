@@ -12,8 +12,12 @@ fun Task.appliesOn(date: LocalDate): Boolean {
         "recurring" -> weekdays?.contains(date.weekdayMonFirst()) == true
         "single", "birthday" -> fixed_date == date.format(DATE)
         "weekly_goal" -> {
-            // Weekly goals show every day of the ISO week so user can tick wherever.
-            true
+            // Show on every day inside the goal's segments. Flat goals (no
+            // segments) fall back to "every day of the week" so they remain
+            // tickable wherever the user is.
+            val segs = target_segments ?: emptyList()
+            if (segs.isEmpty()) true
+            else segs.any { it.weekdays.contains(date.weekdayMonFirst()) }
         }
         else -> false
     }

@@ -251,7 +251,7 @@ private fun SelectedDayList(
 @Composable
 private fun MonthTaskRow(task: Task, date: LocalDate, onToggle: () -> Unit) {
     val done = task.isCompletedOn(date)
-    val actionable = task.is_todo && task.task_type != "weekly_goal"
+    val actionable = task.is_todo
     val edit = LocalEditTask.current
     Row(
         modifier = Modifier
