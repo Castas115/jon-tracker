@@ -88,29 +88,50 @@ def post_message(idea_id: int, payload: IdeaMessageCreate, db: Session = Depends
 
 @router.post("/transcribe", response_model=TranscribeResponse)
 async def transcribe(audio: UploadFile = File(...)) -> TranscribeResponse:
-    """Stream the uploaded audio to OpenAI Whisper. Never writes to disk."""
-    if not settings.openai_api_key:
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "transcription not configured (OPENAI_API_KEY missing)",
-        )
+    """Stream the uploaded audio to OpenAI/Azure Whisper. Never persists."""
     data = await audio.read()
     if not data:
         raise HTTPException(400, "empty audio upload")
     filename = audio.filename or "audio.m4a"
     content_type = audio.content_type or "application/octet-stream"
 
+    azure_ready = bool(
+        settings.azure_openai_endpoint
+        and settings.azure_openai_api_key
+        and settings.azure_openai_deployment_name
+    )
+    openai_ready = bool(settings.openai_api_key)
+    if not (azure_ready or openai_ready):
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "transcription not configured (need AZURE_OPENAI_* or OPENAI_API_KEY)",
+        )
+
+    if azure_ready:
+        endpoint = settings.azure_openai_endpoint.rstrip("/")
+        url = (
+            f"{endpoint}/openai/deployments/"
+            f"{settings.azure_openai_deployment_name}/audio/transcriptions"
+            f"?api-version={settings.azure_openai_api_version}"
+        )
+        headers = {"api-key": settings.azure_openai_api_key}
+        form_data: dict[str, str] = {}
+    else:
+        url = "https://api.openai.com/v1/audio/transcriptions"
+        headers = {"Authorization": f"Bearer {settings.openai_api_key}"}
+        form_data = {"model": settings.whisper_model}
+
     async with httpx.AsyncClient(timeout=60.0) as client:
         res = await client.post(
-            "https://api.openai.com/v1/audio/transcriptions",
-            headers={"Authorization": f"Bearer {settings.openai_api_key}"},
+            url,
+            headers=headers,
             files={"file": (filename, data, content_type)},
-            data={"model": settings.whisper_model},
+            data=form_data,
         )
     if res.status_code != 200:
         raise HTTPException(
             502,
-            f"whisper failed ({res.status_code}): {res.text[:300]}",
+            f"transcribe failed ({res.status_code}): {res.text[:400]}",
         )
     body = res.json()
     return TranscribeResponse(text=body.get("text", ""))

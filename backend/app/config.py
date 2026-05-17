@@ -11,10 +11,19 @@ class Settings(BaseSettings):
     # "Secret address in iCal format"). Empty string disables the integration.
     ics_url: str = ""
 
-    # OpenAI Whisper for /transcribe. Audio is never written to disk; it
-    # streams straight to OpenAI.
+    # Transcription for /transcribe. Audio is never written to disk; it
+    # streams straight to the provider. Two paths:
+    #   - Azure OpenAI: set AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_API_KEY +
+    #     AZURE_OPENAI_DEPLOYMENT_NAME (must point at a whisper /
+    #     gpt-4o-transcribe deployment).
+    #   - OpenAI direct: set OPENAI_API_KEY.
+    # Azure takes precedence when both are set.
     openai_api_key: str = ""
     whisper_model: str = "whisper-1"
+    azure_openai_endpoint: str = ""
+    azure_openai_api_key: str = ""
+    azure_openai_api_version: str = "2024-06-01"
+    azure_openai_deployment_name: str = ""
 
 
 settings = Settings()
