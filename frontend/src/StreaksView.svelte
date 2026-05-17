@@ -4,24 +4,10 @@
   import type { Task } from './lib/types';
 
   type Props = {
-    open: boolean;
     tasks: Task[];
-    onClose: () => void;
   };
 
-  const { open, tasks, onClose }: Props = $props();
-
-  let dialog: HTMLDialogElement | null = $state(null);
-
-  $effect(() => {
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    else if (!open && dialog.open) dialog.close();
-  });
-
-  function handleBackdropClick(e: MouseEvent) {
-    if (e.target === dialog) onClose();
-  }
+  const { tasks }: Props = $props();
 
   const WEEKS = 18; // horizon shown in the heatmap, including current week
   const WEEKDAY_SHORT = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -154,8 +140,7 @@
   }
 </script>
 
-<dialog bind:this={dialog} onclose={onClose} onclick={handleBackdropClick}>
-  <h2>Goal streaks</h2>
+<section class="streaks">
   {#if cards.length === 0}
     <p class="empty">No weekly goals yet.</p>
   {:else}
@@ -217,30 +202,16 @@
       {/each}
     </div>
   {/if}
-  <div class="actions">
-    <button type="button" class="primary" onclick={onClose}>Close</button>
-  </div>
-</dialog>
+</section>
 
 <style>
-  dialog {
-    background: var(--bg-2);
-    color: var(--fg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1.25rem;
-    width: min(720px, 96vw);
-    max-height: 88vh;
+  .streaks {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  }
-  dialog::backdrop {
-    background: rgba(0, 0, 0, 0.6);
-  }
-  h2 {
-    margin: 0 0 0.85rem;
-    font-size: 1.05rem;
-    font-weight: 600;
+    padding: 0.25rem;
   }
   .empty {
     color: var(--fg-muted);
@@ -353,19 +324,4 @@
   .cell[data-count='2'] { background: color-mix(in srgb, var(--accent) 60%, var(--bg-3)); }
   .cell[data-count='3'] { background: color-mix(in srgb, var(--accent) 80%, var(--bg-3)); }
   .cell[data-count='4'] { background: var(--accent); }
-
-  .actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 0.85rem;
-  }
-  .actions .primary {
-    background: var(--accent);
-    color: var(--accent-fg);
-    border: 1px solid var(--accent);
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-  }
 </style>

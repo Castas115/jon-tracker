@@ -1,5 +1,5 @@
 <script lang="ts">
-  type View = 'day' | 'week' | 'month' | 'backlog';
+  type View = 'day' | 'week' | 'month' | 'backlog' | 'streaks';
 
   type Props = {
     open: boolean;
@@ -29,7 +29,7 @@
     { keys: ['⌥L'], desc: 'Cycle view forward (day → week → month)' },
     { keys: ['b'], desc: 'Backlog view' },
     { keys: ['t'], desc: 'Toggle theme' },
-    { keys: ['s'], desc: 'Goal streaks' },
+    { keys: ['s'], desc: 'Streaks view' },
     { keys: ['g'], desc: 'Jump to today · press again to bounce back to where you were' },
     { keys: ['?'], desc: 'Toggle this help' },
     { keys: ['Esc'], desc: 'Close dialog / clear pending count' }
@@ -69,6 +69,10 @@
     }
   ];
 
+  const streaksRows: Row[] = [
+    { keys: ['—'], desc: 'Goal heatmap — hover a cell for the date + count' }
+  ];
+
   const viewRows = $derived(
     view === 'day'
       ? dayRows
@@ -76,11 +80,21 @@
         ? weekRows
         : view === 'month'
           ? monthRows
-          : backlogRows
+          : view === 'streaks'
+            ? streaksRows
+            : backlogRows
   );
 
   const viewTitle = $derived(
-    view === 'day' ? 'Day view' : view === 'week' ? 'Week view' : view === 'month' ? 'Month view' : 'Backlog'
+    view === 'day'
+      ? 'Day view'
+      : view === 'week'
+        ? 'Week view'
+        : view === 'month'
+          ? 'Month view'
+          : view === 'streaks'
+            ? 'Streaks'
+            : 'Backlog'
   );
 
   const allRows = $derived([

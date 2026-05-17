@@ -9,11 +9,11 @@
   import DayView from './DayView.svelte';
   import HelpDialog from './HelpDialog.svelte';
   import MonthView from './MonthView.svelte';
-  import StreaksDialog from './StreaksDialog.svelte';
+  import StreaksView from './StreaksView.svelte';
   import WeekGrid from './WeekGrid.svelte';
   import TaskFormDialog, { type TaskFormValues } from './TaskFormDialog.svelte';
 
-  type View = 'day' | 'week' | 'month' | 'backlog';
+  type View = 'day' | 'week' | 'month' | 'backlog' | 'streaks';
 
   let tasks = $state<Task[]>([]);
   let events = $state<CalendarEvent[]>([]);
@@ -25,7 +25,9 @@
 
   function loadView(): View {
     const v = localStorage.getItem('tracker-view');
-    return v === 'day' || v === 'month' || v === 'week' || v === 'backlog' ? v : 'week';
+    return v === 'day' || v === 'month' || v === 'week' || v === 'backlog' || v === 'streaks'
+      ? v
+      : 'week';
   }
   $effect(() => {
     localStorage.setItem('tracker-view', view);
@@ -50,7 +52,6 @@
   let dialogInitial = $state<DialogInitial>({});
   let editingId = $state<number | null>(null);
   let helpOpen = $state(false);
-  let streaksOpen = $state(false);
 
   // Cursor for keyboard navigation. Week: weekday 0..6, hour 6..23.
   // Month: a YYYY-MM-DD pointing at any day in the month grid.
@@ -224,7 +225,7 @@
 
   function handleKey(e: KeyboardEvent) {
     if (isInputFocused()) return;
-    if (dialogOpen || helpOpen || streaksOpen) return;
+    if (dialogOpen || helpOpen) return;
 
     // Escape clears any pending count.
     if (e.key === 'Escape') {
@@ -251,8 +252,8 @@
       setCount('');
       return;
     }
-    // Alt+H / Alt+L cycle between views: day → week → month → backlog.
-    const VIEW_ORDER: View[] = ['day', 'week', 'month', 'backlog'];
+    // Alt+H / Alt+L cycle between views: day → week → month → backlog → streaks.
+    const VIEW_ORDER: View[] = ['day', 'week', 'month', 'backlog', 'streaks'];
     if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'h' || e.key === 'H' || e.key === 'ArrowLeft')) {
       e.preventDefault();
       const i = VIEW_ORDER.indexOf(view);
@@ -293,7 +294,7 @@
     }
     if (isPlainKey(e, 's')) {
       e.preventDefault();
-      streaksOpen = true;
+      view = 'streaks';
       setCount('');
       return;
     }
@@ -400,6 +401,16 @@
         >
           Backlog
         </button>
+        <button
+          class="tab"
+          class:active={view === 'streaks'}
+          role="tab"
+          aria-selected={view === 'streaks'}
+          onclick={() => (view = 'streaks')}
+          title="Goal streaks (s)"
+        >
+          Streaks
+        </button>
       </div>
       <div class="header-actions">
         {#if calendarConfigured}
@@ -412,15 +423,6 @@
           title="New task (n)"
         >
           + New task
-        </button>
-        <button
-          class="icon"
-          type="button"
-          aria-label="Goal streaks"
-          title="Goal streaks (s)"
-          onclick={() => (streaksOpen = true)}
-        >
-          🔥
         </button>
         <button
           class="icon"
@@ -460,6 +462,8 @@
       onCreateGoal={() => openCreate({ task_type: 'weekly_goal', is_todo: true, target_per_week: 3 })}
       onEdit={openEdit}
     />
+  {:else if view === 'streaks'}
+    <StreaksView {tasks} />
   {:else if view === 'month'}
     <MonthView
       {tasks}
@@ -516,8 +520,6 @@
 
 <HelpDialog open={helpOpen} {view} onClose={() => (helpOpen = false)} />
 
-<StreaksDialog open={streaksOpen} {tasks} onClose={() => (streaksOpen = false)} />
-
 <style>
   .header-actions {
     display: flex;
@@ -533,7 +535,7 @@
     border-radius: var(--radius);
     border: 1px solid var(--border);
     flex: 1;
-    max-width: 320px;
+    max-width: 420px;
   }
   .tab {
     flex: 1;
