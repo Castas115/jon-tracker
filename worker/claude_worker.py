@@ -91,18 +91,26 @@ returning.
 
 
 def fetch_pending(client: httpx.Client) -> list[dict[str, Any]]:
-    """Ideas that need the assistant's attention."""
+    """Ideas that need the assistant's attention.
+
+    Picks up:
+      - status='new'                                   → first-pass triage
+      - any other live status with last msg role=user  → user replied / follow-up
+
+    Rejected ideas are skipped — the user has to reopen them explicitly.
+    """
     r = client.get(f"{BACKEND_URL}/ideas")
     r.raise_for_status()
     out: list[dict[str, Any]] = []
     for idea in r.json():
+        if idea["status"] == "rejected":
+            continue
         if idea["status"] == "new":
             out.append(idea)
             continue
-        if idea["status"] == "needs_info":
-            msgs = idea.get("messages") or []
-            if msgs and msgs[-1]["role"] == "user":
-                out.append(idea)
+        msgs = idea.get("messages") or []
+        if msgs and msgs[-1]["role"] == "user":
+            out.append(idea)
     return out
 
 
