@@ -134,64 +134,45 @@ class MonthWidget : GlanceAppWidget() {
         modifier: GlanceModifier,
     ) {
         val numColor = when {
-            isToday -> Color(0xFF000000)
+            isToday -> Color(0xFFFFC080)
             !inMonth -> Color(0xFF444444)
             date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY -> Color(0xFFB0A090)
             else -> Color(0xFFE5E5E5)
         }
-        Column(
-            modifier = modifier
-                .padding(1.dp)
-                .cornerRadius(3.dp)
-                .background(Color(0xFF111111))
-                .padding(2.dp),
-            horizontalAlignment = Alignment.Start,
-        ) {
-            Box(
-                modifier = GlanceModifier
-                    .height(14.dp)
-                    .cornerRadius(7.dp)
-                    .background(if (isToday) Color(0xFF9C7546) else Color(0x00000000))
-                    .padding(horizontal = if (isToday) 4.dp else 0.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    date.dayOfMonth.toString(),
-                    style = TextStyle(
-                        color = ColorProvider(numColor),
-                        fontSize = 10.sp,
-                        fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                    ),
-                )
-            }
+        // Keep view count low: a Column with at most 3 Text children. Glance
+        // turns each composable into a RemoteView and the host has a hard cap.
+        Column(modifier = modifier.padding(1.dp)) {
+            Text(
+                date.dayOfMonth.toString(),
+                style = TextStyle(
+                    color = ColorProvider(numColor),
+                    fontSize = 11.sp,
+                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                ),
+            )
             if (inMonth) {
-                entries.take(2).forEach { e ->
-                    val label = if (e.time != null) "${e.time.take(5)} ${e.title}" else e.title
-                    Box(
-                        modifier = GlanceModifier
-                            .fillMaxWidth()
-                            .padding(top = 1.dp)
-                            .cornerRadius(2.dp)
-                            .background(Color(0xFF2A1F12))
-                            .padding(horizontal = 2.dp, vertical = 1.dp),
-                    ) {
-                        Text(
-                            label,
-                            style = TextStyle(
-                                color = ColorProvider(Color(0xFFE0CFB4)),
-                                fontSize = 8.sp,
-                            ),
-                            maxLines = 1,
-                        )
-                    }
-                }
-                if (entries.size > 2) {
+                val first = entries.getOrNull(0)
+                if (first != null) {
                     Text(
-                        "+${entries.size - 2}",
+                        first.title,
                         style = TextStyle(
-                            color = ColorProvider(Color(0xFF888888)),
+                            color = ColorProvider(Color(0xFFE0CFB4)),
                             fontSize = 8.sp,
                         ),
+                        maxLines = 1,
+                    )
+                }
+                if (entries.size >= 2) {
+                    val label = if (entries.size == 2) entries[1].title else "+${entries.size - 1}"
+                    Text(
+                        label,
+                        style = TextStyle(
+                            color = ColorProvider(
+                                if (entries.size == 2) Color(0xFFE0CFB4) else Color(0xFF888888),
+                            ),
+                            fontSize = 8.sp,
+                        ),
+                        maxLines = 1,
                     )
                 }
             }
