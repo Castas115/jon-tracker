@@ -120,7 +120,9 @@ fun MonthScreen() {
                     val inMonth = d.month == month.month
                     val isToday = d == today
                     val isSelected = d == selected
-                    val applicable = tasks.count { it.appliesOn(d) }
+                    val applicable = tasks.count {
+                        it.appliesOn(d) && !(it.task_type == "weekly_goal" && !it.show_in_upcoming)
+                    }
                     val evCount = countEventsOn(events, d)
                     DayCell(
                         date = d,
