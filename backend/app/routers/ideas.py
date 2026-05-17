@@ -95,19 +95,24 @@ async def transcribe(audio: UploadFile = File(...)) -> TranscribeResponse:
     filename = audio.filename or "audio.m4a"
     content_type = audio.content_type or "application/octet-stream"
 
+    groq_ready = bool(settings.groq_api_key)
     azure_ready = bool(
         settings.azure_openai_endpoint
         and settings.azure_openai_api_key
         and settings.azure_openai_deployment_name
     )
     openai_ready = bool(settings.openai_api_key)
-    if not (azure_ready or openai_ready):
+    if not (groq_ready or azure_ready or openai_ready):
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "transcription not configured (need AZURE_OPENAI_* or OPENAI_API_KEY)",
+            "transcription not configured (need GROQ_API_KEY, AZURE_OPENAI_*, or OPENAI_API_KEY)",
         )
 
-    if azure_ready:
+    if groq_ready:
+        url = "https://api.groq.com/openai/v1/audio/transcriptions"
+        headers = {"Authorization": f"Bearer {settings.groq_api_key}"}
+        form_data: dict[str, str] = {"model": settings.groq_model}
+    elif azure_ready:
         endpoint = settings.azure_openai_endpoint.rstrip("/")
         url = (
             f"{endpoint}/openai/deployments/"
@@ -115,7 +120,7 @@ async def transcribe(audio: UploadFile = File(...)) -> TranscribeResponse:
             f"?api-version={settings.azure_openai_api_version}"
         )
         headers = {"api-key": settings.azure_openai_api_key}
-        form_data: dict[str, str] = {}
+        form_data = {}
     else:
         url = "https://api.openai.com/v1/audio/transcriptions"
         headers = {"Authorization": f"Bearer {settings.openai_api_key}"}
