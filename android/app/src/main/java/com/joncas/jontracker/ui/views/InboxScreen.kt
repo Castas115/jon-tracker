@@ -16,17 +16,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,9 +41,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.joncas.jontracker.api.Idea
@@ -98,22 +105,76 @@ fun InboxScreen() {
             },
         )
     } else {
-        IdeaList(ideas = ideas, onOpen = { selected = it.id })
+        IdeaList(
+            ideas = ideas,
+            onOpen = { selected = it.id },
+            onArchive = { idea ->
+                scope.launch { IdeaRepo.update(idea.id, IdeaUpdate(status = "done")) }
+            },
+        )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun IdeaList(ideas: List<Idea>, onOpen: (Idea) -> Unit) {
+private fun IdeaList(
+    ideas: List<Idea>,
+    onOpen: (Idea) -> Unit,
+    onArchive: (Idea) -> Unit,
+) {
+    val visible = ideas.filter { it.status != "done" && it.status != "rejected" }
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 8.dp)) {
-        if (ideas.isEmpty()) {
+        if (visible.isEmpty()) {
             Text(
-                "Nothing yet. Tap the mic icon to capture an idea.",
+                "Nothing yet. Tap the mic icon to capture an idea, or swipe right on a row to archive it.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(12.dp),
             )
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(items = ideas, key = { it.id }) { idea -> IdeaRow(idea, onOpen) }
+                items(items = visible, key = { it.id }) { idea ->
+                    // Re-key on status so the swipe state resets after archive.
+                    key(idea.id, idea.status) {
+                        val state = rememberSwipeToDismissBoxState(
+                            confirmValueChange = { value ->
+                                if (value == SwipeToDismissBoxValue.StartToEnd) {
+                                    onArchive(idea)
+                                    true
+                                } else false
+                            },
+                            // Require ~30% swipe to commit, otherwise spring back.
+                            positionalThreshold = { distance -> distance * 0.3f },
+                        )
+                        SwipeToDismissBox(
+                            state = state,
+                            enableDismissFromStartToEnd = true,
+                            enableDismissFromEndToStart = false,
+                            backgroundContent = {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Color(0xFF4CAF50).copy(alpha = 0.85f))
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Archive,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                    )
+                                    Text(
+                                        "  Archive",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
+                            },
+                        ) {
+                            IdeaRow(idea, onOpen)
+                        }
+                    }
+                }
             }
         }
     }
