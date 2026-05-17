@@ -17,6 +17,8 @@ export type Task = {
   target_per_week: number | null; // weekly_goal: flat target. Ignored when target_segments is set.
   target_segments: TargetSegment[] | null; // weekly_goal: weekday-bucketed targets
   show_in_upcoming: boolean; // false → hide from the day-view "Upcoming" panel
+  start_date: string | null; // YYYY-MM-DD. Recurring/weekly_goal don't apply before this date.
+  end_date: string | null; // YYYY-MM-DD. Recurring/weekly_goal stop applying after this date.
   created_at: string;
   completed_dates: string[];
 };

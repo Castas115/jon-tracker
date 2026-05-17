@@ -8,6 +8,7 @@
     weekdayMonFirst,
     ymd
   } from './lib/dates';
+  import { isActiveOn } from './lib/active';
   import { type CalendarEvent } from './lib/api';
   import { WEEKDAY_LABELS, type Task } from './lib/types';
   import { weeklyGoalLabel } from './lib/weeklyGoal';
@@ -55,6 +56,7 @@
     const k = ymd(d);
     return tasks
       .filter((t) => {
+        if (!isActiveOn(t, k)) return false;
         if (t.task_type === 'recurring') return (t.weekdays ?? []).includes(wd);
         if (t.task_type === 'single') return t.fixed_date === k;
         if (t.task_type === 'birthday' && t.fixed_date) {

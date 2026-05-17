@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { isActiveOn } from './lib/active';
   import { type CalendarEvent } from './lib/api';
   import { MONTH_LABELS, isToday, isoWeekNumber, weekdayMonFirst, ymd } from './lib/dates';
   import { WEEKDAY_LABELS, WEEKDAY_LABELS_LONG, type Task } from './lib/types';
@@ -100,6 +101,7 @@
   }
 
   function matchesOn(t: Task, dayDate: Date, k: string): boolean {
+    if (!isActiveOn(t, k)) return false;
     const wd = weekdayMonFirst(dayDate);
     if (t.task_type === 'recurring') return (t.weekdays ?? []).includes(wd);
     if (t.task_type === 'single') return t.fixed_date === k;

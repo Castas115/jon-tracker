@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isActiveOn } from './lib/active';
   import { weekdayMonFirst, ymd } from './lib/dates';
   import { type Task } from './lib/types';
   import { weeklyGoalLabel } from './lib/weeklyGoal';
@@ -15,6 +16,7 @@
   const todayWD = weekdayMonFirst(todayDate);
 
   function matchesToday(t: Task): boolean {
+    if (!isActiveOn(t, todayYMD)) return false;
     if (t.task_type === 'recurring') return (t.weekdays ?? []).includes(todayWD);
     if (t.task_type === 'single') return t.fixed_date === todayYMD;
     if (t.task_type === 'birthday' && t.fixed_date) {

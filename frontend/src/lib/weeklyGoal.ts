@@ -107,8 +107,12 @@ export type StreakInfo = {
  */
 export function streakInfo(t: Task, todayYMD: string): StreakInfo {
   const today = new Date(todayYMD + 'T00:00:00');
-  const createdMonday = mondayOf(new Date(t.created_at));
-  let cursor = mondayOf(today);
+  const startSource = t.start_date ? new Date(t.start_date + 'T00:00:00') : new Date(t.created_at);
+  const startMonday = mondayOf(startSource);
+  // Cap scan at end_date when set; otherwise today.
+  const endSource = t.end_date ? new Date(t.end_date + 'T00:00:00') : today;
+  const endMonday = mondayOf(endSource < today ? endSource : today);
+  let cursor = endMonday;
 
   const hit = (d: Date) => goalStatus(t, ymd(d)).hit;
 
@@ -116,17 +120,16 @@ export function streakInfo(t: Task, todayYMD: string): StreakInfo {
   if (!hit(cursor)) {
     cursor.setDate(cursor.getDate() - 7);
   }
-  while (cursor >= createdMonday && hit(cursor)) {
+  while (cursor >= startMonday && hit(cursor)) {
     current++;
     cursor.setDate(cursor.getDate() - 7);
   }
 
-  // Best streak: scan every week from creation to today.
+  // Best streak: scan every week in the active range.
   let best = 0;
   let run = 0;
-  let scan = new Date(createdMonday);
-  const end = mondayOf(today);
-  while (scan <= end) {
+  let scan = new Date(startMonday);
+  while (scan <= endMonday) {
     if (hit(scan)) {
       run++;
       if (run > best) best = run;

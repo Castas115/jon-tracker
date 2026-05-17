@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ymd } from './lib/dates';
   import { WEEKDAY_LABELS, WEEKDAY_LABELS_LONG, type TaskType, type TargetSegment } from './lib/types';
 
   export type TaskFormValues = {
@@ -12,6 +13,8 @@
     target_per_week: number | null;
     target_segments: TargetSegment[] | null;
     show_in_upcoming: boolean;
+    start_date: string | null;
+    end_date: string | null;
   };
 
   type Initial = Partial<{
@@ -25,6 +28,8 @@
     target_per_week: number;
     target_segments: TargetSegment[];
     show_in_upcoming: boolean;
+    start_date: string;
+    end_date: string;
   }>;
 
   type Props = {
@@ -48,6 +53,8 @@
   let end = $state('');
   let isTodo = $state(false);
   let showInUpcoming = $state(true);
+  let startDate = $state<string>('');
+  let endDate = $state<string>('');
   // Weekly-goal: list of segments. Default = single segment covering every
   // day with target 3 (shorthand for the old flat target_per_week=3).
   let segments = $state<TargetSegment[]>([{ weekdays: [0, 1, 2, 3, 4, 5, 6], target: 3 }]);
@@ -67,6 +74,8 @@
       end = snap.end ?? '';
       isTodo = snap.is_todo ?? false;
       showInUpcoming = snap.show_in_upcoming ?? true;
+      startDate = snap.start_date ?? '';
+      endDate = snap.end_date ?? '';
       if (snap.target_segments && snap.target_segments.length > 0) {
         segments = snap.target_segments.map((s) => ({
           weekdays: [...s.weekdays],
@@ -157,6 +166,10 @@
       localError = 'End must be after start';
       return;
     }
+    if (startDate && endDate && endDate < startDate) {
+      localError = 'End date must be on or after start date';
+      return;
+    }
     if (taskType === 'recurring' && weekdays.length === 0) {
       localError = 'Pick at least one day';
       return;
@@ -211,6 +224,8 @@
       target_per_week: flatSum,
       target_segments: isWeekly ? segments.map((s) => ({ weekdays: [...s.weekdays], target: s.target })) : null,
       show_in_upcoming: showInUpcoming,
+      start_date: (taskType === 'recurring' || isWeekly) ? (startDate || null) : null,
+      end_date: (taskType === 'recurring' || isWeekly) ? (endDate || null) : null,
     });
   }
 
@@ -395,6 +410,44 @@
       <input type="checkbox" bind:checked={showInUpcoming} />
       <span>Show in upcoming panel</span>
     </label>
+
+    {#if taskType === 'recurring' || taskType === 'weekly_goal'}
+      <div class="row">
+        <label class="field">
+          <span>Active from</span>
+          <input type="date" bind:value={startDate} />
+        </label>
+        <label class="field">
+          <span>Until</span>
+          <input type="date" bind:value={endDate} />
+        </label>
+      </div>
+      <div class="end-row">
+        <button
+          type="button"
+          class="end-now"
+          onclick={() => (endDate = ymd(new Date()))}
+          title="Stop the task at the end of today"
+        >
+          End today
+        </button>
+        {#if endDate}
+          <button
+            type="button"
+            class="end-now ghost"
+            onclick={() => (endDate = '')}
+            title="Clear end date"
+          >
+            Clear
+          </button>
+        {/if}
+      </div>
+      <p class="hint">
+        Leave “Active from” empty to default to today on creation. Set “Until”
+        instead of deleting when something ends — history and streaks stay
+        intact.
+      </p>
+    {/if}
 
     {#if localError}
       <p class="err">{localError}</p>
@@ -644,5 +697,27 @@
     color: var(--accent-fg);
     border: 1px solid var(--accent);
     font-weight: 600;
+  }
+
+  .end-row {
+    display: flex;
+    gap: 0.4rem;
+  }
+  .end-now {
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 0.4rem 0.7rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.8rem;
+  }
+  .end-now:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .end-now.ghost {
+    color: var(--fg-muted);
   }
 </style>

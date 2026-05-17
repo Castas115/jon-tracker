@@ -24,6 +24,8 @@ export type CreatePayload = {
   target_per_week?: number | null;
   target_segments?: { weekdays: number[]; target: number }[] | null;
   show_in_upcoming?: boolean;
+  start_date?: string | null;
+  end_date?: string | null;
 };
 
 export type CalendarEvent = {

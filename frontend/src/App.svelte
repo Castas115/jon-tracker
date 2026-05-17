@@ -42,6 +42,8 @@
     target_per_week?: number;
     target_segments?: { weekdays: number[]; target: number }[];
     show_in_upcoming?: boolean;
+    start_date?: string;
+    end_date?: string;
   };
 
   let dialogOpen = $state(false);
@@ -158,7 +160,9 @@
       is_todo: t.is_todo,
       target_per_week: t.target_per_week ?? undefined,
       target_segments: t.target_segments ?? undefined,
-      show_in_upcoming: t.show_in_upcoming
+      show_in_upcoming: t.show_in_upcoming,
+      start_date: t.start_date ?? undefined,
+      end_date: t.end_date ?? undefined
     };
     dialogOpen = true;
   }

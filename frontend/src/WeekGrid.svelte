@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isActiveOn } from './lib/active';
   import { type CalendarEvent } from './lib/api';
   import { MONTH_LABELS, isoWeekNumber, weekDatesFromMonday, ymd } from './lib/dates';
   import { WEEKDAY_LABELS, type Task } from './lib/types';
@@ -73,6 +74,7 @@
   }
 
   function matchesDay(t: Task, weekday: number, dateYMD: string): boolean {
+    if (!isActiveOn(t, dateYMD)) return false;
     if (t.task_type === 'recurring') {
       return (t.weekdays ?? []).includes(weekday);
     }
