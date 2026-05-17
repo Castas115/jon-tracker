@@ -30,4 +30,4 @@ services:
     environment:
       BACKEND_URL: http://backend:8000
       POLL_INTERVAL: "10"
-    command: ["uv", "run", "--no-dev", "python", "worker/idea_worker.py"]
+    command: ["uv", "run", "--no-dev", "python", "worker/claude_worker.py"]
