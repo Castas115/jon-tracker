@@ -90,6 +90,42 @@ fun Task.displayTitle(date: LocalDate): String {
     return "$title ($shown/$target)"
 }
 
+data class StreakInfo(val current: Int, val best: Int)
+
+/**
+ * Consecutive ISO weeks where the goal hit its target. Current week counts
+ * only if already hit; otherwise the streak starts from the previous week.
+ * Weeks before [Task.created_at] aren't counted.
+ */
+fun Task.streakInfo(today: LocalDate): StreakInfo {
+    val createdMonday = runCatching {
+        LocalDate.parse(created_at.substring(0, 10))
+    }.getOrNull()?.mondayOfWeek() ?: today.mondayOfWeek()
+    val endMonday = today.mondayOfWeek()
+
+    var cursor = endMonday
+    if (!goalStatus(cursor).hit) cursor = cursor.minusWeeks(1)
+    var current = 0
+    while (!cursor.isBefore(createdMonday) && goalStatus(cursor).hit) {
+        current++
+        cursor = cursor.minusWeeks(1)
+    }
+
+    var best = 0
+    var run = 0
+    var scan = createdMonday
+    while (!scan.isAfter(endMonday)) {
+        if (goalStatus(scan).hit) {
+            run++
+            if (run > best) best = run
+        } else {
+            run = 0
+        }
+        scan = scan.plusWeeks(1)
+    }
+    return StreakInfo(current, best)
+}
+
 private val WEEKDAY_SHORT = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
 fun segmentLabel(seg: TargetSegment): String {
