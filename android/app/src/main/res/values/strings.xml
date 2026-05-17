@@ -2,4 +2,7 @@
 <resources>
     <string name="app_name">Jon Tracker</string>
     <string name="widget_description">Today\'s tasks</string>
+    <string name="widget_week_description">Week goals + progress</string>
+    <string name="widget_month_description">Month progress</string>
+    <string name="widget_streak_description">Goal streaks</string>
 </resources>
