@@ -27,6 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -235,11 +236,15 @@ private fun ThreadView(
             )
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
+        val lastUser = idea.messages.lastOrNull()?.role == "user" && idea.status != "rejected"
         LazyColumn(
             modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(items = idea.messages, key = { it.id }) { msg -> MessageBubble(msg) }
+            if (lastUser) {
+                item(key = "thinking") { ThinkingBubble() }
+            }
         }
         Row(
             modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(8.dp),
@@ -285,6 +290,37 @@ private fun MessageBubble(msg: IdeaMessage) {
                 .padding(horizontal = 10.dp, vertical = 6.dp),
         ) {
             Text(msg.text, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+@Composable
+private fun ThinkingBubble() {
+    val infinite = androidx.compose.animation.core.rememberInfiniteTransition(label = "ai-think")
+    val alpha by infinite.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(900),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
+        ),
+        label = "ai-think-alpha",
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start,
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+        ) {
+            Text(
+                "AI is thinking…",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
+            )
         }
     }
 }
