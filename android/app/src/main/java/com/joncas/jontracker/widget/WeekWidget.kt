@@ -8,17 +8,18 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.action.ActionParameters
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.updateAll
-import androidx.glance.action.ActionParameters
-import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.background
 import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
@@ -29,23 +30,61 @@ import androidx.glance.layout.padding
 import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
+import androidx.glance.text.TextDecoration
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import com.joncas.jontracker.api.Task
 import com.joncas.jontracker.api.TrackerApi
+import com.joncas.jontracker.data.appliesOn
+import com.joncas.jontracker.data.displayTitle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.WeekFields
+
+private val DAY_LABEL_FMT = DateTimeFormatter.ofPattern("EEE")
+
+private data class WeekItem(
+    val date: LocalDate,
+    val task: Task,
+    val done: Boolean,
+)
 
 class WeekWidget : GlanceAppWidget() {
-
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val tasks = runCatching { withContext(Dispatchers.IO) { TrackerApi.listTasks() } }
             .getOrDefault(emptyList())
-        val stats = computeStats(tasks)
-        provideContent { GlanceTheme { Content(stats) } }
+        val today = LocalDate.now()
+        val monday = today.with(DayOfWeek.MONDAY)
+        val items = mutableListOf<WeekItem>()
+        for (i in 0..6) {
+            val d = monday.plusDays(i.toLong())
+            val k = d.toString()
+            tasks
+                .filter { it.appliesOn(d) }
+                .sortedWith(compareBy({ it.start_time ?: "99:99" }, { it.title }))
+                .forEach {
+                    val done = if (it.task_type == "weekly_goal") false else k in it.completed_dates
+                    items += WeekItem(d, it, done)
+                }
+        }
+        val weekNum = today.get(WeekFields.ISO.weekOfWeekBasedYear())
+        provideContent { GlanceTheme { Content(weekNum, today, items) } }
     }
 
     @Composable
-    private fun Content(stats: WidgetStats) {
+    private fun Content(weekNumber: Int, today: LocalDate, items: List<WeekItem>) {
+        // Bring incomplete-and-upcoming tasks to the top, but still show the
+        // full week below them so the widget reflects the whole schedule.
+        val sorted = items.sortedWith(
+            compareBy(
+                { it.done },
+                { it.date },
+                { it.task.start_time ?: "99:99" },
+            ),
+        )
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
@@ -55,7 +94,7 @@ class WeekWidget : GlanceAppWidget() {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxWidth()) {
                 Text(
-                    "Week ${stats.weekNumber}",
+                    "Week $weekNumber",
                     style = TextStyle(
                         color = ColorProvider(Color(0xFF9C7546)),
                         fontSize = 14.sp,
@@ -64,7 +103,7 @@ class WeekWidget : GlanceAppWidget() {
                 )
                 Spacer(GlanceModifier.width(8.dp))
                 Text(
-                    "${stats.weekTodos.done}/${stats.weekTodos.total} done",
+                    "${items.count { it.done }}/${items.size}",
                     style = TextStyle(color = ColorProvider(Color(0xFF888888)), fontSize = 12.sp),
                 )
                 Spacer(GlanceModifier.defaultWeight())
@@ -74,36 +113,78 @@ class WeekWidget : GlanceAppWidget() {
                     style = TextStyle(color = ColorProvider(Color(0xFF888888)), fontSize = 14.sp),
                 )
             }
-            Spacer(GlanceModifier.height(8.dp))
-            if (stats.weekGoals.isEmpty()) {
+            Spacer(GlanceModifier.height(6.dp))
+            if (sorted.isEmpty()) {
                 Text(
-                    "No weekly goals.",
+                    "Nothing scheduled this week.",
                     style = TextStyle(color = ColorProvider(Color(0xFF888888)), fontSize = 12.sp),
                 )
             } else {
-                stats.weekGoals.take(5).forEach { g ->
-                    Row(modifier = GlanceModifier.fillMaxWidth().padding(vertical = 2.dp)) {
-                        Text(
-                            g.title,
-                            modifier = GlanceModifier.defaultWeight(),
-                            style = TextStyle(
-                                color = ColorProvider(
-                                    if (g.hit) Color(0xFF9C7546) else Color(0xFFE5E5E5),
-                                ),
-                                fontSize = 13.sp,
-                            ),
-                            maxLines = 1,
-                        )
-                        Text(
-                            "${g.done}/${g.target}",
-                            style = TextStyle(
-                                color = ColorProvider(Color(0xFFAAAAAA)),
-                                fontSize = 12.sp,
-                            ),
-                        )
-                    }
+                sorted.take(8).forEach { item ->
+                    WeekRow(item, isToday = item.date == today)
+                }
+                if (sorted.size > 8) {
+                    Spacer(GlanceModifier.height(2.dp))
+                    Text(
+                        "+${sorted.size - 8} more",
+                        style = TextStyle(color = ColorProvider(Color(0xFF666666)), fontSize = 11.sp),
+                    )
                 }
             }
+        }
+    }
+
+    @Composable
+    private fun WeekRow(item: WeekItem, isToday: Boolean) {
+        val dayLabel = item.date.format(DAY_LABEL_FMT)
+        val time = item.task.start_time
+        val title = item.task.displayTitle(item.date)
+        Row(
+            modifier = GlanceModifier.fillMaxWidth().padding(vertical = 1.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = GlanceModifier
+                    .width(28.dp)
+                    .cornerRadius(4.dp)
+                    .background(if (isToday) Color(0xFF9C7546) else Color(0x00000000))
+                    .padding(horizontal = 2.dp, vertical = 1.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    dayLabel.take(3),
+                    style = TextStyle(
+                        color = ColorProvider(
+                            if (isToday) Color(0xFF000000) else Color(0xFFAAAAAA),
+                        ),
+                        fontSize = 11.sp,
+                        fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                    ),
+                )
+            }
+            Spacer(GlanceModifier.width(6.dp))
+            if (time != null) {
+                Text(
+                    time,
+                    style = TextStyle(
+                        color = ColorProvider(Color(0xFF888888)),
+                        fontSize = 11.sp,
+                    ),
+                )
+                Spacer(GlanceModifier.width(6.dp))
+            }
+            Text(
+                title,
+                modifier = GlanceModifier.defaultWeight(),
+                style = TextStyle(
+                    color = ColorProvider(
+                        if (item.done) Color(0xFF555555) else Color(0xFFE5E5E5),
+                    ),
+                    fontSize = 12.sp,
+                    textDecoration = if (item.done) TextDecoration.LineThrough else TextDecoration.None,
+                ),
+                maxLines = 1,
+            )
         }
     }
 }
