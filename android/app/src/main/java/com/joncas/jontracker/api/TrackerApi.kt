@@ -111,6 +111,25 @@ object TrackerApi {
             setBody(payload)
         }.body()
 
+    suspend fun listFeatures(): List<FeatureRequest> =
+        client.get("$BASE_URL/features").body()
+
+    suspend fun createFeature(payload: FeatureRequestPayload): FeatureRequest =
+        client.post("$BASE_URL/features") {
+            contentType(ContentType.Application.Json)
+            setBody(payload)
+        }.body()
+
+    suspend fun updateFeature(id: Int, payload: FeatureRequestPayload): FeatureRequest =
+        client.patch("$BASE_URL/features/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(payload)
+        }.body()
+
+    suspend fun deleteFeature(id: Int) {
+        client.delete("$BASE_URL/features/$id")
+    }
+
     suspend fun transcribe(audio: ByteArray, mimeType: String, filename: String): TranscribeResponse =
         client.post("$BASE_URL/ideas/transcribe") {
             setBody(

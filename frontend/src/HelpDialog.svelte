@@ -1,5 +1,5 @@
 <script lang="ts">
-  type View = 'day' | 'week' | 'month' | 'backlog' | 'streaks' | 'inbox';
+  type View = 'day' | 'week' | 'month' | 'backlog' | 'streaks' | 'inbox' | 'features';
 
   type Props = {
     open: boolean;
@@ -31,6 +31,7 @@
     { keys: ['t'], desc: 'Toggle theme' },
     { keys: ['s'], desc: 'Streaks view' },
     { keys: ['i'], desc: 'Inbox view' },
+    { keys: ['f'], desc: 'Features view' },
     { keys: ['g'], desc: 'Jump to today · press again to bounce back to where you were' },
     { keys: ['?'], desc: 'Toggle this help' },
     { keys: ['Esc'], desc: 'Close dialog / clear pending count' }

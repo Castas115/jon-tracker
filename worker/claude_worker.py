@@ -47,6 +47,10 @@ ALLOWED_TOOLS = ",".join(
         "update_task",
         "delete_task",
         "toggle_task_completion",
+        "list_features",
+        "create_feature",
+        "update_feature",
+        "delete_feature",
     )
 )
 
@@ -68,11 +72,19 @@ message thread for it. Your job:
      • call `set_idea` with status=done and linked_task_id=<new task id>
      • call `post_idea_message` with a short confirmation in the user's
        language (mirror what they used — usually Spanish).
-4. If it's a FEATURE, leave it for later:
-     • call `set_idea` with kind=feature and status=in_progress (so it
-       stays visible in Inbox as something Jon wants).
-     • call `post_idea_message` acknowledging it and asking any
-       clarifying questions you need to scope it.
+4. If it's a FEATURE and you have enough to write a clean ticket:
+     • check existing tickets first with `list_features` so you don't
+       create a duplicate (refine an existing one instead).
+     • call `create_feature` with a sharp title (≤80 chars, imperative)
+       and a 1–3 paragraph description in Markdown summarising the ask,
+       the motivation, and any details from the thread. Pass
+       source_idea_id=<this idea's id> so the ticket links back.
+     • call `set_idea` with kind=feature, status=done, and
+       linked_task_id stays null (linked_task_id is for tasks only).
+     • call `post_idea_message` confirming you've opened ticket #N.
+   If it's a FEATURE but the scope is still vague:
+     • call `set_idea` with kind=feature, status=in_progress
+     • call `post_idea_message` asking ONE focused scoping question.
 5. If ANYTHING is unclear (date, frequency, target count, what they meant):
      • call `post_idea_message` asking ONE focused question — not three.
      • call `set_idea` with status=needs_info.

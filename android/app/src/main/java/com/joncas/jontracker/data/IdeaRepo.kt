@@ -18,6 +18,19 @@ object IdeaRepo {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    // When non-null, the Inbox screen should open this idea on its next
+    // composition. Cleared after the screen consumes it.
+    private val _pendingSelection = MutableStateFlow<Int?>(null)
+    val pendingSelection: StateFlow<Int?> = _pendingSelection.asStateFlow()
+
+    fun requestSelection(id: Int) {
+        _pendingSelection.value = id
+    }
+
+    fun clearPendingSelection() {
+        _pendingSelection.value = null
+    }
+
     suspend fun refresh() {
         runCatching { _ideas.value = TrackerApi.listIdeas() }
             .onFailure { _error.value = it.message ?: it.toString() }

@@ -212,6 +212,59 @@ def delete_task(task_id: int) -> str:
     return f"deleted task {task_id}"
 
 
+# ---- feature requests ----
+
+
+@mcp.tool()
+def list_features(status: str | None = None) -> list[dict]:
+    """List feature requests. Filter by status (open|in_progress|done|rejected)."""
+    return _get("/features", status=status)
+
+
+@mcp.tool()
+def create_feature(
+    title: str,
+    description: str | None = None,
+    source_idea_id: int | None = None,
+    status: str = "open",
+) -> dict:
+    """Create a feature request — the definitive ticket for an app-level change.
+
+    Use when the user's idea is a feature and the conversation has settled
+    enough to capture a clean title + description. The thread of the source
+    idea is preserved separately; link it via source_idea_id.
+    """
+    payload: dict[str, Any] = {"title": title, "status": status}
+    if description is not None:
+        payload["description"] = description
+    if source_idea_id is not None:
+        payload["source_idea_id"] = source_idea_id
+    return _post("/features", payload)
+
+
+@mcp.tool()
+def update_feature(
+    feature_id: int,
+    title: str | None = None,
+    description: str | None = None,
+    status: str | None = None,
+) -> dict:
+    """Patch a feature request — refine the title/description or move status."""
+    payload: dict[str, Any] = {
+        k: v
+        for k, v in {"title": title, "description": description, "status": status}.items()
+        if v is not None
+    }
+    return _patch(f"/features/{feature_id}", payload)
+
+
+@mcp.tool()
+def delete_feature(feature_id: int) -> str:
+    """Permanently delete a feature request. Only on explicit user request."""
+    _delete(f"/features/{feature_id}")
+    return f"deleted feature {feature_id}"
+
+
 @mcp.tool()
 def toggle_task_completion(task_id: int, date: str, action: str = "toggle") -> dict:
     """Mark a task complete or undo. date is YYYY-MM-DD. action is one of toggle (flip), add (idempotent insert), remove (idempotent delete). For weekly_goal use 'add' to count multiple completions on the same day."""

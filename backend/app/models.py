@@ -99,6 +99,28 @@ class Idea(Base):
     )
 
 
+class FeatureRequest(Base):
+    """A captured feature/improvement to make to this app itself.
+
+    Promoted from an Idea (or created standalone) once it has a clean
+    title + description. Lifecycle is independent of the source idea —
+    deleting the idea leaves the FR intact.
+    """
+
+    __tablename__ = "feature_requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # open | in_progress | done | rejected
+    status: Mapped[str] = mapped_column(String(16), default="open")
+    source_idea_id: Mapped[int | None] = mapped_column(
+        ForeignKey("ideas.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+
 class IdeaMessage(Base):
     __tablename__ = "idea_messages"
 

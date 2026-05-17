@@ -51,8 +51,17 @@ import kotlinx.coroutines.launch
 @Composable
 fun InboxScreen() {
     val ideas by IdeaRepo.ideas.collectAsState()
+    val pendingSelection by IdeaRepo.pendingSelection.collectAsState()
     var selected by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
+
+    // Honor a programmatic selection request (e.g. just-recorded idea).
+    LaunchedEffect(pendingSelection) {
+        pendingSelection?.let {
+            selected = it
+            IdeaRepo.clearPendingSelection()
+        }
+    }
 
     // Auto-poll while this tab is on screen so the worker's replies show up
     // without forcing a manual reload.

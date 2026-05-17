@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.List
@@ -67,6 +68,7 @@ import com.joncas.jontracker.data.Prefs
 import com.joncas.jontracker.data.TaskRepo
 import com.joncas.jontracker.ui.views.BacklogScreen
 import com.joncas.jontracker.ui.views.DayScreen
+import com.joncas.jontracker.ui.views.FeaturesScreen
 import com.joncas.jontracker.ui.views.InboxScreen
 import com.joncas.jontracker.ui.views.MonthScreen
 import com.joncas.jontracker.ui.views.StreaksScreen
@@ -82,6 +84,7 @@ private val TABS = listOf(
     Tab("backlog", "Backlog", Icons.Filled.List),
     Tab("streaks", "Streaks", Icons.Filled.Whatshot),
     Tab("inbox", "Inbox", Icons.Filled.Inbox),
+    Tab("features", "Features", Icons.Filled.AutoAwesome),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -143,49 +146,64 @@ fun AppScaffold(
                 enabled = hasMic && !transcribing,
                 recording = recording,
                 transcribing = transcribing,
+                onTap = {
+                    // Short tap opens the typed-entry sheet.
+                    initialTranscript = ""
+                    captureOpen = true
+                },
                 onPressStart = {
-                    Log.d("FAB", "press start, hasMic=$hasMic")
                     if (!hasMic) {
                         micLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         return@HoldToRecordFab
                     }
                     captureError = null
                     runCatching { recorder.start() }
-                        .onSuccess {
-                            recording = true
-                            Log.d("FAB", "recorder started")
-                        }
+                        .onSuccess { recording = true }
                         .onFailure {
                             captureError = it.message ?: it.toString()
                             Log.e("FAB", "recorder failed", it)
                         }
                 },
                 onReleased = { cancelled ->
+                    val wasRecording = recording
                     val file = recorder.stop()
-                    Log.d(
-                        "FAB",
-                        "released cancelled=$cancelled file=${file?.absolutePath} size=${file?.length()}",
-                    )
                     recording = false
-                    if (file == null || file.length() < 1024) {
+                    if (!wasRecording || file == null || file.length() < 1024) {
                         file?.delete()
                         return@HoldToRecordFab
                     }
                     transcribing = true
                     scope.launch {
-                        Log.d("FAB", "upload starting bytes=${file.length()}")
                         val res = uploadAndTranscribe(file)
-                        transcribing = false
                         file.delete()
                         res.onSuccess { text ->
-                            Log.d("FAB", "transcribe ok len=${text.length} text=${text.take(60)}")
-                            initialTranscript = text
-                            captureOpen = true
+                            val trimmed = text.trim()
+                            if (trimmed.isEmpty()) {
+                                transcribing = false
+                                captureError = "Empty transcription — try again."
+                                return@launch
+                            }
+                            val created = IdeaRepo.create(
+                                com.joncas.jontracker.api.IdeaCreate(transcript = trimmed),
+                            )
+                            transcribing = false
+                            if (created != null) {
+                                IdeaRepo.requestSelection(created.id)
+                                nav.navigate("inbox") {
+                                    popUpTo(nav.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            } else {
+                                // Backend rejected — fall back to the sheet so
+                                // the user can edit and retry.
+                                initialTranscript = trimmed
+                                captureOpen = true
+                            }
                         }.onFailure {
+                            transcribing = false
                             Log.e("FAB", "transcribe failed", it)
                             captureError = it.message ?: it.toString()
-                            initialTranscript = ""
-                            captureOpen = true
                         }
                     }
                 },
@@ -222,6 +240,7 @@ fun AppScaffold(
                 composable("backlog") { BacklogScreen() }
                 composable("streaks") { StreaksScreen() }
                 composable("inbox") { InboxScreen() }
+                composable("features") { FeaturesScreen() }
             }
             if (error != null) {
                 ErrorBanner(message = error!!, onDismiss = { TaskRepo.clearError() })
@@ -250,6 +269,7 @@ private fun HoldToRecordFab(
     enabled: Boolean,
     recording: Boolean,
     transcribing: Boolean,
+    onTap: () -> Unit,
     onPressStart: () -> Unit,
     onReleased: (cancelled: Boolean) -> Unit,
 ) {
@@ -273,11 +293,21 @@ private fun HoldToRecordFab(
                 if (!enabled) return@pointerInput
                 detectTapGestures(
                     onPress = {
+                        // The recorder starts immediately on every press; if the
+                        // touch turns out to be a short tap (<250 ms) we discard
+                        // the file and treat it as a typed-entry tap instead.
+                        val pressTime = System.currentTimeMillis()
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         onPressStart()
                         val released = tryAwaitRelease()
+                        val duration = System.currentTimeMillis() - pressTime
                         haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onReleased(!released)
+                        if (duration < 250) {
+                            onReleased(true) // discard short fragment
+                            onTap()
+                        } else {
+                            onReleased(!released)
+                        }
                     },
                 )
             },

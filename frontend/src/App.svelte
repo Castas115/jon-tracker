@@ -7,6 +7,7 @@
   import { applyTheme, loadTheme, saveTheme, type Theme } from './lib/theme';
   import BacklogView from './BacklogView.svelte';
   import DayView from './DayView.svelte';
+  import FeaturesView from './FeaturesView.svelte';
   import HelpDialog from './HelpDialog.svelte';
   import InboxView from './InboxView.svelte';
   import MonthView from './MonthView.svelte';
@@ -14,7 +15,7 @@
   import WeekGrid from './WeekGrid.svelte';
   import TaskFormDialog, { type TaskFormValues } from './TaskFormDialog.svelte';
 
-  type View = 'day' | 'week' | 'month' | 'backlog' | 'streaks' | 'inbox';
+  type View = 'day' | 'week' | 'month' | 'backlog' | 'streaks' | 'inbox' | 'features';
 
   let tasks = $state<Task[]>([]);
   let ideas = $state<Idea[]>([]);
@@ -32,7 +33,8 @@
       v === 'week' ||
       v === 'backlog' ||
       v === 'streaks' ||
-      v === 'inbox'
+      v === 'inbox' ||
+      v === 'features'
       ? v
       : 'week';
   }
@@ -261,8 +263,8 @@
       setCount('');
       return;
     }
-    // Alt+H / Alt+L cycle between views: day → week → month → backlog → streaks → inbox.
-    const VIEW_ORDER: View[] = ['day', 'week', 'month', 'backlog', 'streaks', 'inbox'];
+    // Alt+H / Alt+L cycle between views.
+    const VIEW_ORDER: View[] = ['day', 'week', 'month', 'backlog', 'streaks', 'inbox', 'features'];
     if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'h' || e.key === 'H' || e.key === 'ArrowLeft')) {
       e.preventDefault();
       const i = VIEW_ORDER.indexOf(view);
@@ -310,6 +312,12 @@
     if (isPlainKey(e, 'i')) {
       e.preventDefault();
       view = 'inbox';
+      setCount('');
+      return;
+    }
+    if (isPlainKey(e, 'f')) {
+      e.preventDefault();
+      view = 'features';
       setCount('');
       return;
     }
@@ -445,6 +453,16 @@
         >
           Inbox
         </button>
+        <button
+          class="tab"
+          class:active={view === 'features'}
+          role="tab"
+          aria-selected={view === 'features'}
+          onclick={() => (view = 'features')}
+          title="Feature requests (f)"
+        >
+          Features
+        </button>
       </div>
       <div class="header-actions">
         {#if calendarConfigured}
@@ -500,6 +518,8 @@
     <StreaksView {tasks} />
   {:else if view === 'inbox'}
     <InboxView {ideas} onChange={(next) => (ideas = next)} />
+  {:else if view === 'features'}
+    <FeaturesView />
   {:else if view === 'month'}
     <MonthView
       {tasks}

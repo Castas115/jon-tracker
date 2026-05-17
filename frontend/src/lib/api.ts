@@ -73,7 +73,25 @@ export const api = {
     http<Idea>(`/ideas/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
   deleteIdea: (id: number) => http<void>(`/ideas/${id}`, { method: 'DELETE' }),
   postIdeaMessage: (id: number, payload: { role: 'user' | 'assistant'; text: string }) =>
-    http<Idea>(`/ideas/${id}/messages`, { method: 'POST', body: JSON.stringify(payload) })
+    http<Idea>(`/ideas/${id}/messages`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  listFeatures: () => http<FeatureRequest[]>('/features'),
+  createFeature: (payload: { title: string; description?: string | null; status?: FeatureStatus; source_idea_id?: number | null }) =>
+    http<FeatureRequest>('/features', { method: 'POST', body: JSON.stringify(payload) }),
+  updateFeature: (id: number, payload: Partial<{ title: string; description: string | null; status: FeatureStatus }>) =>
+    http<FeatureRequest>(`/features/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteFeature: (id: number) => http<void>(`/features/${id}`, { method: 'DELETE' })
+};
+
+export type FeatureStatus = 'open' | 'in_progress' | 'done' | 'rejected';
+export type FeatureRequest = {
+  id: number;
+  title: string;
+  description: string | null;
+  status: FeatureStatus;
+  source_idea_id: number | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type IdeaKind = 'task' | 'feature' | 'unknown';

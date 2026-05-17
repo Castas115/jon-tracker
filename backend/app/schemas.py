@@ -211,3 +211,32 @@ class IdeaMessageCreate(BaseModel):
 
 class TranscribeResponse(BaseModel):
     text: str
+
+
+FeatureStatus = Literal["open", "in_progress", "done", "rejected"]
+
+
+class FeatureRequestRead(BaseModel):
+    id: int
+    title: str
+    description: str | None
+    status: FeatureStatus
+    source_idea_id: int | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class FeatureRequestCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    description: str | None = None
+    status: FeatureStatus = "open"
+    source_idea_id: int | None = None
+
+
+class FeatureRequestUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    description: str | None = None
+    status: FeatureStatus | None = None
+    source_idea_id: int | None = None

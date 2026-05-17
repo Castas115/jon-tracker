@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .db import engine, ensure_schema
-from .routers import calendar, ideas, tasks
+from .routers import calendar, features, ideas, tasks
 
 
 @asynccontextmanager
@@ -29,6 +29,7 @@ app.add_middleware(
 app.include_router(tasks.router)
 app.include_router(calendar.router)
 app.include_router(ideas.router)
+app.include_router(features.router)
 
 
 @app.get("/health")

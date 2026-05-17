@@ -110,3 +110,22 @@ data class IdeaUpdate(
 
 @Serializable
 data class TranscribeResponse(val text: String)
+
+@Serializable
+data class FeatureRequest(
+    val id: Int,
+    val title: String,
+    val description: String? = null,
+    val status: String, // open | in_progress | done | rejected
+    val source_idea_id: Int? = null,
+    val created_at: String,
+    val updated_at: String,
+)
+
+@Serializable
+data class FeatureRequestPayload(
+    val title: String,
+    val description: String? = null,
+    val status: String? = null,
+    val source_idea_id: Int? = null,
+)
