@@ -23,6 +23,7 @@ COPY backend/pyproject.toml backend/uv.lock* ./
 RUN uv sync --no-install-project --no-dev
 
 COPY backend/app ./app
+COPY worker ./worker
 COPY --from=frontend /web/dist ./static
 
 EXPOSE 8000

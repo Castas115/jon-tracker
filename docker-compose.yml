@@ -17,3 +17,17 @@ services:
     # can reach this port.
     ports:
       - "8000:8000"
+
+  worker:
+    build: .
+    container_name: tracker-worker
+    restart: unless-stopped
+    depends_on:
+      - backend
+    env_file:
+      - path: ./.env
+        required: false
+    environment:
+      BACKEND_URL: http://backend:8000
+      POLL_INTERVAL: "10"
+    command: ["uv", "run", "--no-dev", "python", "worker/idea_worker.py"]
