@@ -158,3 +158,53 @@ class CompletionToggle(BaseModel):
     # "add"   → ensure there is a completion for this date (idempotent).
     # "remove"→ ensure there is no completion for this date (idempotent).
     action: Literal["toggle", "add", "remove"] = "toggle"
+
+
+IdeaKind = Literal["task", "feature", "unknown"]
+IdeaStatus = Literal["new", "needs_info", "in_progress", "done", "rejected"]
+MessageRole = Literal["user", "assistant"]
+
+
+class IdeaMessageRead(BaseModel):
+    id: int
+    role: MessageRole
+    text: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class IdeaRead(BaseModel):
+    id: int
+    kind: IdeaKind
+    title: str
+    transcript: str
+    status: IdeaStatus
+    linked_task_id: int | None
+    created_at: datetime
+    updated_at: datetime
+    messages: list[IdeaMessageRead]
+
+    model_config = {"from_attributes": True}
+
+
+class IdeaCreate(BaseModel):
+    transcript: str = Field(min_length=1)
+    kind: IdeaKind = "unknown"
+    title: str = Field(default="", max_length=200)
+
+
+class IdeaUpdate(BaseModel):
+    kind: IdeaKind | None = None
+    title: str | None = Field(default=None, max_length=200)
+    status: IdeaStatus | None = None
+    linked_task_id: int | None = None
+
+
+class IdeaMessageCreate(BaseModel):
+    role: MessageRole
+    text: str = Field(min_length=1)
+
+
+class TranscribeResponse(BaseModel):
+    text: str

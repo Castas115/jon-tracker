@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, String
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -66,3 +66,43 @@ class TaskCompletion(Base):
     completed_on: Mapped[date] = mapped_column(Date)
 
     task: Mapped[Task] = relationship(back_populates="completions")
+
+
+class Idea(Base):
+    """A captured idea — either a request to create/modify a task ("task")
+    or a desired change to the app itself ("feature"). The transcript is
+    the raw text the user submitted (often from voice transcription); the
+    title is a short summary either the user or the assistant sets.
+    """
+
+    __tablename__ = "ideas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(16), default="unknown")  # task|feature|unknown
+    title: Mapped[str] = mapped_column(String(200), default="")
+    transcript: Mapped[str] = mapped_column(Text, default="")
+    # new | needs_info | in_progress | done | rejected
+    status: Mapped[str] = mapped_column(String(16), default="new")
+    linked_task_id: Mapped[int | None] = mapped_column(
+        ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+    messages: Mapped[list["IdeaMessage"]] = relationship(
+        back_populates="idea",
+        cascade="all, delete-orphan",
+        order_by="IdeaMessage.created_at",
+    )
+
+
+class IdeaMessage(Base):
+    __tablename__ = "idea_messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    idea_id: Mapped[int] = mapped_column(ForeignKey("ideas.id", ondelete="CASCADE"))
+    role: Mapped[str] = mapped_column(String(16))  # user | assistant
+    text: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+    idea: Mapped[Idea] = relationship(back_populates="messages")

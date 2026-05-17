@@ -11,5 +11,10 @@ class Settings(BaseSettings):
     # "Secret address in iCal format"). Empty string disables the integration.
     ics_url: str = ""
 
+    # OpenAI Whisper for /transcribe. Audio is never written to disk; it
+    # streams straight to OpenAI.
+    openai_api_key: str = ""
+    whisper_model: str = "whisper-1"
+
 
 settings = Settings()
