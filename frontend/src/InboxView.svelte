@@ -190,6 +190,14 @@
             {m.text}
           </div>
         {/each}
+        {#if selected.messages.length > 0 && selected.messages[selected.messages.length - 1].role === 'user' && selected.status !== 'rejected'}
+          <div class="bubble thinking" aria-live="polite">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="label">AI is thinking…</span>
+          </div>
+        {/if}
       </div>
 
       <form
@@ -384,6 +392,28 @@
   .bubble.mine {
     align-self: flex-end;
     background: color-mix(in srgb, var(--accent) 35%, var(--bg-3));
+  }
+  .bubble.thinking {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--fg-muted);
+    font-size: 0.85rem;
+  }
+  .bubble.thinking .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--fg-muted);
+    opacity: 0.6;
+    animation: blink 1.2s infinite;
+  }
+  .bubble.thinking .dot:nth-child(2) { animation-delay: 0.2s; }
+  .bubble.thinking .dot:nth-child(3) { animation-delay: 0.4s; }
+  .bubble.thinking .label { margin-left: 4px; }
+  @keyframes blink {
+    0%, 80%, 100% { opacity: 0.3; }
+    40% { opacity: 1; }
   }
 
   .reply {
