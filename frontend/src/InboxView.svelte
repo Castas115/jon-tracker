@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { api, type Idea, type IdeaKind, type IdeaStatus } from './lib/api';
 
   type Props = {
@@ -7,6 +8,25 @@
   };
 
   const { ideas, onChange }: Props = $props();
+
+  // Poll the worker's responses while this view is mounted.
+  onMount(() => {
+    let stopped = false;
+    const tick = async () => {
+      try {
+        const next = await api.listIdeas();
+        if (!stopped) onChange(next);
+      } catch {
+        // ignore — keep polling
+      }
+    };
+    const timer = setInterval(tick, 5000);
+    tick();
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  });
 
   let selectedId = $state<number | null>(null);
   let draft = $state('');

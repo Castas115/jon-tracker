@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +45,7 @@ import com.joncas.jontracker.api.IdeaMessage
 import com.joncas.jontracker.api.IdeaMessageCreate
 import com.joncas.jontracker.api.IdeaUpdate
 import com.joncas.jontracker.data.IdeaRepo
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -51,6 +53,15 @@ fun InboxScreen() {
     val ideas by IdeaRepo.ideas.collectAsState()
     var selected by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
+
+    // Auto-poll while this tab is on screen so the worker's replies show up
+    // without forcing a manual reload.
+    LaunchedEffect(Unit) {
+        while (true) {
+            IdeaRepo.refresh()
+            delay(5_000)
+        }
+    }
 
     val current = selected?.let { id -> ideas.firstOrNull { it.id == id } }
 
