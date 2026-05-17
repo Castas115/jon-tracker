@@ -122,6 +122,9 @@ class MonthWidget : GlanceAppWidget() {
     private fun entriesFor(tasks: List<Task>, d: LocalDate): List<CellEntry> {
         return tasks
             .filter { it.appliesOn(d) }
+            // Hide weekly_goal tasks the user has opted out of the upcoming
+            // panel — matches the web MonthView's filter.
+            .filter { !(it.task_type == "weekly_goal" && !it.show_in_upcoming) }
             .sortedWith(compareBy({ it.start_time ?: "99:99" }, { it.title }))
             .map { CellEntry(it.start_time, it.displayTitle(d)) }
     }

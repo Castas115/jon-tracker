@@ -64,6 +64,7 @@ class WeekWidget : GlanceAppWidget() {
             val k = d.toString()
             tasks
                 .filter { it.appliesOn(d) }
+                .filter { !(it.task_type == "weekly_goal" && !it.show_in_upcoming) }
                 .sortedWith(compareBy({ it.start_time ?: "99:99" }, { it.title }))
                 .forEach {
                     val done = if (it.task_type == "weekly_goal") false else k in it.completed_dates
