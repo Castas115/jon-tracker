@@ -34,6 +34,7 @@ import androidx.glance.unit.ColorProvider
 import com.joncas.jontracker.api.Task
 import com.joncas.jontracker.api.TrackerApi
 import com.joncas.jontracker.data.appliesOn
+import com.joncas.jontracker.data.displayTitle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
@@ -43,6 +44,8 @@ import java.time.format.TextStyle as JTextStyle
 import java.util.Locale
 
 private val WEEKDAY_HEADERS = listOf("M", "T", "W", "T", "F", "S", "S")
+
+private data class CellEntry(val time: String?, val title: String)
 
 class MonthWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -56,7 +59,6 @@ class MonthWidget : GlanceAppWidget() {
     private fun Content(today: LocalDate, tasks: List<Task>) {
         val ym = YearMonth.from(today)
         val first = ym.atDay(1)
-        // Monday-first leading offset: dow value MONDAY=1 → 0, ..., SUNDAY=7 → 6.
         val lead = (first.dayOfWeek.value + 6) % 7
         val gridStart = first.minusDays(lead.toLong())
 
@@ -65,14 +67,14 @@ class MonthWidget : GlanceAppWidget() {
                 .fillMaxSize()
                 .background(Color(0xFF000000))
                 .cornerRadius(12.dp)
-                .padding(10.dp),
+                .padding(8.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxWidth()) {
                 Text(
                     "${ym.month.getDisplayName(JTextStyle.SHORT, Locale.getDefault()).replaceFirstChar { it.titlecase(Locale.getDefault()) }} ${ym.year}",
                     style = TextStyle(
                         color = ColorProvider(Color(0xFF9C7546)),
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                     ),
                 )
@@ -80,11 +82,10 @@ class MonthWidget : GlanceAppWidget() {
                 Text(
                     "↻",
                     modifier = GlanceModifier.clickable(actionRunCallback<MonthRefreshAction>()),
-                    style = TextStyle(color = ColorProvider(Color(0xFF888888)), fontSize = 14.sp),
+                    style = TextStyle(color = ColorProvider(Color(0xFF888888)), fontSize = 13.sp),
                 )
             }
-            Spacer(GlanceModifier.height(4.dp))
-            // Day-of-week header
+            Spacer(GlanceModifier.height(2.dp))
             Row(modifier = GlanceModifier.fillMaxWidth()) {
                 WEEKDAY_HEADERS.forEach { lbl ->
                     Box(modifier = GlanceModifier.defaultWeight(), contentAlignment = Alignment.Center) {
@@ -92,25 +93,24 @@ class MonthWidget : GlanceAppWidget() {
                             lbl,
                             style = TextStyle(
                                 color = ColorProvider(Color(0xFF666666)),
-                                fontSize = 10.sp,
+                                fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
                             ),
                         )
                     }
                 }
             }
-            Spacer(GlanceModifier.height(2.dp))
-            // 6 weeks × 7 days grid
+            Spacer(GlanceModifier.height(1.dp))
             for (row in 0 until 6) {
-                Row(modifier = GlanceModifier.fillMaxWidth()) {
+                Row(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
                     for (col in 0 until 7) {
                         val d = gridStart.plusDays((row * 7 + col).toLong())
                         DayCell(
                             date = d,
                             inMonth = d.month == ym.month,
                             isToday = d == today,
-                            hasTask = tasks.any { it.appliesOn(d) },
-                            modifier = GlanceModifier.defaultWeight(),
+                            entries = entriesFor(tasks, d),
+                            modifier = GlanceModifier.defaultWeight().fillMaxSize(),
                         )
                     }
                 }
@@ -118,53 +118,81 @@ class MonthWidget : GlanceAppWidget() {
         }
     }
 
+    private fun entriesFor(tasks: List<Task>, d: LocalDate): List<CellEntry> {
+        return tasks
+            .filter { it.appliesOn(d) }
+            .sortedWith(compareBy({ it.start_time ?: "99:99" }, { it.title }))
+            .map { CellEntry(it.start_time, it.displayTitle(d)) }
+    }
+
     @Composable
     private fun DayCell(
         date: LocalDate,
         inMonth: Boolean,
         isToday: Boolean,
-        hasTask: Boolean,
+        entries: List<CellEntry>,
         modifier: GlanceModifier,
     ) {
-        val fg = when {
+        val numColor = when {
             isToday -> Color(0xFF000000)
             !inMonth -> Color(0xFF444444)
             date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY -> Color(0xFFB0A090)
             else -> Color(0xFFE5E5E5)
         }
-        val bg = if (isToday) Color(0xFF9C7546) else Color(0x00000000)
-        Box(
+        Column(
             modifier = modifier
-                .height(22.dp)
                 .padding(1.dp)
-                .cornerRadius(4.dp)
-                .background(bg),
-            contentAlignment = Alignment.Center,
+                .cornerRadius(3.dp)
+                .background(Color(0xFF111111))
+                .padding(2.dp),
+            horizontalAlignment = Alignment.Start,
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                modifier = GlanceModifier
+                    .height(14.dp)
+                    .cornerRadius(7.dp)
+                    .background(if (isToday) Color(0xFF9C7546) else Color(0x00000000))
+                    .padding(horizontal = if (isToday) 4.dp else 0.dp),
+                contentAlignment = Alignment.Center,
+            ) {
                 Text(
                     date.dayOfMonth.toString(),
                     style = TextStyle(
-                        color = ColorProvider(fg),
-                        fontSize = 11.sp,
+                        color = ColorProvider(numColor),
+                        fontSize = 10.sp,
                         fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
                     ),
                 )
-                if (hasTask && inMonth && !isToday) {
+            }
+            if (inMonth) {
+                entries.take(2).forEach { e ->
+                    val label = if (e.time != null) "${e.time.take(5)} ${e.title}" else e.title
                     Box(
                         modifier = GlanceModifier
-                            .height(3.dp)
-                            .padding(top = 1.dp),
+                            .fillMaxWidth()
+                            .padding(top = 1.dp)
+                            .cornerRadius(2.dp)
+                            .background(Color(0xFF2A1F12))
+                            .padding(horizontal = 2.dp, vertical = 1.dp),
                     ) {
                         Text(
-                            "·",
+                            label,
                             style = TextStyle(
-                                color = ColorProvider(Color(0xFF9C7546)),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
+                                color = ColorProvider(Color(0xFFE0CFB4)),
+                                fontSize = 8.sp,
                             ),
+                            maxLines = 1,
                         )
                     }
+                }
+                if (entries.size > 2) {
+                    Text(
+                        "+${entries.size - 2}",
+                        style = TextStyle(
+                            color = ColorProvider(Color(0xFF888888)),
+                            fontSize = 8.sp,
+                        ),
+                    )
                 }
             }
         }
