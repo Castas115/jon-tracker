@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { api, type CalendarEvent } from './lib/api';
+  import { api, type CalendarEvent, type Idea } from './lib/api';
   import { addMonthsYMD, mondayOf, ymd } from './lib/dates';
   import { isInputFocused, isPlainKey } from './lib/keys';
   import { type Task } from './lib/types';
@@ -8,14 +8,16 @@
   import BacklogView from './BacklogView.svelte';
   import DayView from './DayView.svelte';
   import HelpDialog from './HelpDialog.svelte';
+  import InboxView from './InboxView.svelte';
   import MonthView from './MonthView.svelte';
   import StreaksView from './StreaksView.svelte';
   import WeekGrid from './WeekGrid.svelte';
   import TaskFormDialog, { type TaskFormValues } from './TaskFormDialog.svelte';
 
-  type View = 'day' | 'week' | 'month' | 'backlog' | 'streaks';
+  type View = 'day' | 'week' | 'month' | 'backlog' | 'streaks' | 'inbox';
 
   let tasks = $state<Task[]>([]);
+  let ideas = $state<Idea[]>([]);
   let events = $state<CalendarEvent[]>([]);
   let calendarConfigured = $state(false);
   let loading = $state(true);
@@ -25,7 +27,12 @@
 
   function loadView(): View {
     const v = localStorage.getItem('tracker-view');
-    return v === 'day' || v === 'month' || v === 'week' || v === 'backlog' || v === 'streaks'
+    return v === 'day' ||
+      v === 'month' ||
+      v === 'week' ||
+      v === 'backlog' ||
+      v === 'streaks' ||
+      v === 'inbox'
       ? v
       : 'week';
   }
@@ -252,8 +259,8 @@
       setCount('');
       return;
     }
-    // Alt+H / Alt+L cycle between views: day → week → month → backlog → streaks.
-    const VIEW_ORDER: View[] = ['day', 'week', 'month', 'backlog', 'streaks'];
+    // Alt+H / Alt+L cycle between views: day → week → month → backlog → streaks → inbox.
+    const VIEW_ORDER: View[] = ['day', 'week', 'month', 'backlog', 'streaks', 'inbox'];
     if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'h' || e.key === 'H' || e.key === 'ArrowLeft')) {
       e.preventDefault();
       const i = VIEW_ORDER.indexOf(view);
@@ -295,6 +302,12 @@
     if (isPlainKey(e, 's')) {
       e.preventDefault();
       view = 'streaks';
+      setCount('');
+      return;
+    }
+    if (isPlainKey(e, 'i')) {
+      e.preventDefault();
+      view = 'inbox';
       setCount('');
       return;
     }
@@ -350,11 +363,20 @@
     }
   }
 
+  async function loadIdeas() {
+    try {
+      ideas = await api.listIdeas();
+    } catch (e) {
+      console.warn('ideas fetch failed', e);
+    }
+  }
+
   onMount(() => {
     theme = loadTheme();
     applyTheme(theme);
     load();
     refreshCalendar();
+    loadIdeas();
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   });
@@ -411,6 +433,16 @@
         >
           Streaks
         </button>
+        <button
+          class="tab"
+          class:active={view === 'inbox'}
+          role="tab"
+          aria-selected={view === 'inbox'}
+          onclick={() => (view = 'inbox')}
+          title="Inbox (i)"
+        >
+          Inbox
+        </button>
       </div>
       <div class="header-actions">
         {#if calendarConfigured}
@@ -464,6 +496,8 @@
     />
   {:else if view === 'streaks'}
     <StreaksView {tasks} />
+  {:else if view === 'inbox'}
+    <InboxView {ideas} onChange={(next) => (ideas = next)} />
   {:else if view === 'month'}
     <MonthView
       {tasks}

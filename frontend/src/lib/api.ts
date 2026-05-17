@@ -63,7 +63,36 @@ export const api = {
 
   calendarStatus: () => http<{ configured: boolean }>('/calendar/status'),
   events: (from: string, to: string) =>
-    http<CalendarEvent[]>(`/calendar/events?from=${from}&to=${to}`)
+    http<CalendarEvent[]>(`/calendar/events?from=${from}&to=${to}`),
+
+  listIdeas: () => http<Idea[]>('/ideas'),
+  createIdea: (payload: { transcript: string; kind?: string; title?: string }) =>
+    http<Idea>('/ideas', { method: 'POST', body: JSON.stringify(payload) }),
+  updateIdea: (id: number, payload: Partial<{ kind: string; title: string; status: string; linked_task_id: number | null }>) =>
+    http<Idea>(`/ideas/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteIdea: (id: number) => http<void>(`/ideas/${id}`, { method: 'DELETE' }),
+  postIdeaMessage: (id: number, payload: { role: 'user' | 'assistant'; text: string }) =>
+    http<Idea>(`/ideas/${id}/messages`, { method: 'POST', body: JSON.stringify(payload) })
+};
+
+export type IdeaKind = 'task' | 'feature' | 'unknown';
+export type IdeaStatus = 'new' | 'needs_info' | 'in_progress' | 'done' | 'rejected';
+export type IdeaMessage = {
+  id: number;
+  role: 'user' | 'assistant';
+  text: string;
+  created_at: string;
+};
+export type Idea = {
+  id: number;
+  kind: IdeaKind;
+  title: string;
+  transcript: string;
+  status: IdeaStatus;
+  linked_task_id: number | null;
+  created_at: string;
+  updated_at: string;
+  messages: IdeaMessage[];
 };
 
 function ymdLocal(d: Date): string {

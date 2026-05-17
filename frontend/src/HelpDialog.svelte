@@ -1,5 +1,5 @@
 <script lang="ts">
-  type View = 'day' | 'week' | 'month' | 'backlog' | 'streaks';
+  type View = 'day' | 'week' | 'month' | 'backlog' | 'streaks' | 'inbox';
 
   type Props = {
     open: boolean;
@@ -30,6 +30,7 @@
     { keys: ['b'], desc: 'Backlog view' },
     { keys: ['t'], desc: 'Toggle theme' },
     { keys: ['s'], desc: 'Streaks view' },
+    { keys: ['i'], desc: 'Inbox view' },
     { keys: ['g'], desc: 'Jump to today · press again to bounce back to where you were' },
     { keys: ['?'], desc: 'Toggle this help' },
     { keys: ['Esc'], desc: 'Close dialog / clear pending count' }
@@ -73,6 +74,10 @@
     { keys: ['—'], desc: 'Goal heatmap — hover a cell for the date + count' }
   ];
 
+  const inboxRows: Row[] = [
+    { keys: ['—'], desc: 'Captured ideas — tap an item to chat with the AI' }
+  ];
+
   const viewRows = $derived(
     view === 'day'
       ? dayRows
@@ -82,7 +87,9 @@
           ? monthRows
           : view === 'streaks'
             ? streaksRows
-            : backlogRows
+            : view === 'inbox'
+              ? inboxRows
+              : backlogRows
   );
 
   const viewTitle = $derived(
@@ -94,7 +101,9 @@
           ? 'Month view'
           : view === 'streaks'
             ? 'Streaks'
-            : 'Backlog'
+            : view === 'inbox'
+              ? 'Inbox'
+              : 'Backlog'
   );
 
   const allRows = $derived([
