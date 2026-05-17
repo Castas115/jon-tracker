@@ -62,6 +62,7 @@
           return bd.getMonth() === d.getMonth() && bd.getDate() === d.getDate();
         }
         if (t.task_type === 'weekly_goal') {
+          if (t.show_in_upcoming === false) return false;
           const segs = t.target_segments ?? [];
           if (segs.length === 0) return true;
           return segs.some((s) => s.weekdays.includes(wd));
