@@ -63,3 +63,48 @@ data class CalendarEvent(
 
 @Serializable
 data class CalendarStatus(val configured: Boolean)
+
+@Serializable
+data class IdeaMessage(
+    val id: Int,
+    val role: String, // user | assistant
+    val text: String,
+    val created_at: String,
+)
+
+@Serializable
+data class Idea(
+    val id: Int,
+    val kind: String, // task | feature | unknown
+    val title: String,
+    val transcript: String,
+    val status: String, // new | needs_info | in_progress | done | rejected
+    val linked_task_id: Int? = null,
+    val created_at: String,
+    val updated_at: String,
+    val messages: List<IdeaMessage> = emptyList(),
+)
+
+@Serializable
+data class IdeaCreate(
+    val transcript: String,
+    val kind: String = "unknown",
+    val title: String = "",
+)
+
+@Serializable
+data class IdeaMessageCreate(
+    val role: String,
+    val text: String,
+)
+
+@Serializable
+data class IdeaUpdate(
+    val kind: String? = null,
+    val title: String? = null,
+    val status: String? = null,
+    val linked_task_id: Int? = null,
+)
+
+@Serializable
+data class TranscribeResponse(val text: String)
