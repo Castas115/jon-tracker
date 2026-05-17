@@ -46,7 +46,10 @@ import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun IdeaCaptureSheet(onDismiss: () -> Unit) {
+fun IdeaCaptureSheet(
+    onDismiss: () -> Unit,
+    initialTranscript: String = "",
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -65,7 +68,7 @@ fun IdeaCaptureSheet(onDismiss: () -> Unit) {
     var recording by remember { mutableStateOf(false) }
     var transcribing by remember { mutableStateOf(false) }
     var submitting by remember { mutableStateOf(false) }
-    var transcript by remember { mutableStateOf("") }
+    var transcript by remember { mutableStateOf(initialTranscript) }
     var kind by remember { mutableStateOf("unknown") }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -193,7 +196,7 @@ fun IdeaCaptureSheet(onDismiss: () -> Unit) {
     }
 }
 
-private suspend fun uploadAndTranscribe(file: File): Result<String> = runCatching {
+suspend fun uploadAndTranscribe(file: File): Result<String> = runCatching {
     val bytes = file.readBytes()
     val res = TrackerApi.transcribe(bytes, "audio/mp4", file.name)
     res.text
