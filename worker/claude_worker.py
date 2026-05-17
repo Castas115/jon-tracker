@@ -10,7 +10,9 @@ Two cases get processed:
   - status == "needs_info" and the last message in the thread is from the
     user                             → follow-up after the user replied
 
-Requires ANTHROPIC_API_KEY in the environment.
+Auth is whichever Claude CLI is configured with — either an OAuth token
+from `claude /login` (subscription-backed, free under Pro/Max) or
+ANTHROPIC_API_KEY (pay-per-token).
 """
 
 from __future__ import annotations
@@ -167,8 +169,6 @@ def run_claude(idea: dict[str, Any], config_path: Path) -> None:
 
 
 def loop() -> None:
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        print("ANTHROPIC_API_KEY missing — worker will idle.", file=sys.stderr, flush=True)
     config_path = ensure_mcp_config()
     with httpx.Client(timeout=20) as client:
         while True:

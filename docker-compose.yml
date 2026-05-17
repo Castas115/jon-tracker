@@ -30,4 +30,12 @@ services:
     environment:
       BACKEND_URL: http://backend:8000
       POLL_INTERVAL: "10"
+    volumes:
+      # Persist the Claude Code OAuth login so `claude /login` only has
+      # to run once. Named volume (not bind-mount) so pi host perms don't
+      # interfere with the token file inside the container.
+      - claude_config:/root/.claude
     command: ["uv", "run", "--no-dev", "python", "worker/claude_worker.py"]
+
+volumes:
+  claude_config:
