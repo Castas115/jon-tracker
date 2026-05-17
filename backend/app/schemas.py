@@ -30,6 +30,10 @@ def _validate(model):
         raise ValueError("end_time must be later than start_time")
     if model.end_time and not model.start_time:
         raise ValueError("end_time requires start_time")
+    sd = getattr(model, "start_date", None)
+    ed = getattr(model, "end_date", None)
+    if sd and ed and ed < sd:
+        raise ValueError("end_date must be on or after start_date")
 
     if model.task_type == "recurring":
         if not model.weekdays:
@@ -93,6 +97,8 @@ class TaskCreate(BaseModel):
     notify_enabled: bool = False
     notify_minutes_before: int = Field(default=0, ge=0, le=1440)
     notify_at: TimeStr | None = None
+    start_date: date | None = None
+    end_date: date | None = None
 
     @model_validator(mode="after")
     def _check(self):
@@ -113,6 +119,14 @@ class TaskUpdate(BaseModel):
     notify_enabled: bool | None = None
     notify_minutes_before: int | None = Field(default=None, ge=0, le=1440)
     notify_at: TimeStr | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+
+    @model_validator(mode="after")
+    def _check_range(self):
+        if self.start_date and self.end_date and self.end_date < self.start_date:
+            raise ValueError("end_date must be on or after start_date")
+        return self
 
 
 class TaskRead(BaseModel):
@@ -130,6 +144,8 @@ class TaskRead(BaseModel):
     notify_enabled: bool
     notify_minutes_before: int
     notify_at: str | None
+    start_date: date | None
+    end_date: date | None
     created_at: datetime
     completed_dates: list[date]
 

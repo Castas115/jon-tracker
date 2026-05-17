@@ -85,6 +85,15 @@ def ensure_schema(eng: Engine) -> None:
             )
         if "notify_at" not in existing:
             conn.execute(text("ALTER TABLE tasks ADD COLUMN notify_at VARCHAR(5)"))
+        if "start_date" not in existing:
+            conn.execute(text("ALTER TABLE tasks ADD COLUMN start_date DATE"))
+            # Backfill from created_at so existing rows look like they started
+            # the day they were created.
+            conn.execute(
+                text("UPDATE tasks SET start_date = DATE(created_at) WHERE start_date IS NULL")
+            )
+        if "end_date" not in existing:
+            conn.execute(text("ALTER TABLE tasks ADD COLUMN end_date DATE"))
 
         # Rename legacy task_type='fixed' to 'single' (terminology change).
         conn.execute(text("UPDATE tasks SET task_type = 'single' WHERE task_type = 'fixed'"))

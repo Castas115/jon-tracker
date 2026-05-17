@@ -46,6 +46,11 @@ class Task(Base):
     # {"weekdays": [0..6], "target": int>=1}. When set, overrides
     # target_per_week — total target = sum(target across segments).
     target_segments: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
+    # Active range. start_date defaults to creation day; end_date (inclusive)
+    # ends the task so it stops appearing in views/streaks without being
+    # destroyed. Only enforced for recurring + weekly_goal.
+    start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
     completions: Mapped[list["TaskCompletion"]] = relationship(

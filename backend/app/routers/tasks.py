@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -25,6 +27,8 @@ def _to_read(task: Task) -> TaskRead:
         notify_enabled=task.notify_enabled,
         notify_minutes_before=task.notify_minutes_before,
         notify_at=task.notify_at,
+        start_date=task.start_date,
+        end_date=task.end_date,
         created_at=task.created_at,
         completed_dates=sorted(c.completed_on for c in task.completions),
     )
@@ -54,6 +58,8 @@ def create_task(payload: TaskCreate, db: Session = Depends(get_db)) -> TaskRead:
         notify_enabled=payload.notify_enabled,
         notify_minutes_before=payload.notify_minutes_before,
         notify_at=payload.notify_at,
+        start_date=payload.start_date or datetime.now(UTC).date(),
+        end_date=payload.end_date,
     )
     db.add(task)
     db.commit()
