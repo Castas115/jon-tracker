@@ -36,17 +36,26 @@ import com.joncas.jontracker.api.Task
 import com.joncas.jontracker.api.TrackerApi
 import com.joncas.jontracker.data.appliesOn
 import com.joncas.jontracker.data.displayTitle
+import com.joncas.jontracker.data.isCompletedOn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle as JTextStyle
+import java.time.temporal.WeekFields
 import java.util.Locale
 
-private val WEEKDAY_HEADERS = listOf("M", "T", "W", "T", "F", "S", "S")
+private val WEEKDAY_HEADERS = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
 
-private data class CellEntry(val time: String?, val title: String)
+private data class CellEntry(
+    val time: String?,
+    val title: String,
+    val kind: ChipKind,
+    val done: Boolean,
+)
+
+private enum class ChipKind { TASK, BIRTHDAY, GOAL }
 
 class MonthWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -62,31 +71,40 @@ class MonthWidget : GlanceAppWidget() {
         val first = ym.atDay(1)
         val lead = (first.dayOfWeek.value + 6) % 7
         val gridStart = first.minusDays(lead.toLong())
+        val weekNum = today.get(WeekFields.ISO.weekOfWeekBasedYear())
+        val title = "${ym.month.getDisplayName(JTextStyle.SHORT, Locale.getDefault()).replaceFirstChar { it.titlecase(Locale.getDefault()) }} ${ym.year} · W$weekNum"
 
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(Color(0xFF000000))
                 .cornerRadius(12.dp)
-                .padding(8.dp),
+                .padding(6.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxWidth()) {
-                Text(
-                    "${ym.month.getDisplayName(JTextStyle.SHORT, Locale.getDefault()).replaceFirstChar { it.titlecase(Locale.getDefault()) }} ${ym.year}",
-                    style = TextStyle(
-                        color = ColorProvider(Color(0xFF9C7546)),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                    ),
-                )
-                Spacer(GlanceModifier.defaultWeight())
-                Text(
-                    "↻",
-                    modifier = GlanceModifier.clickable(actionRunCallback<MonthRefreshAction>()),
-                    style = TextStyle(color = ColorProvider(Color(0xFF888888)), fontSize = 13.sp),
-                )
+            // Header: centered title + refresh on the right.
+            Box(modifier = GlanceModifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Row(
+                    modifier = GlanceModifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Spacer(GlanceModifier.defaultWeight())
+                    Text(
+                        title,
+                        style = TextStyle(
+                            color = ColorProvider(Color(0xFFE5E5E5)),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                    )
+                    Spacer(GlanceModifier.defaultWeight())
+                    Text(
+                        "↻",
+                        modifier = GlanceModifier.clickable(actionRunCallback<MonthRefreshAction>()),
+                        style = TextStyle(color = ColorProvider(Color(0xFF666666)), fontSize = 12.sp),
+                    )
+                }
             }
-            Spacer(GlanceModifier.height(2.dp))
+            Spacer(GlanceModifier.height(4.dp))
             Row(modifier = GlanceModifier.fillMaxWidth()) {
                 WEEKDAY_HEADERS.forEach { lbl ->
                     Box(modifier = GlanceModifier.defaultWeight(), contentAlignment = Alignment.Center) {
@@ -101,7 +119,7 @@ class MonthWidget : GlanceAppWidget() {
                     }
                 }
             }
-            Spacer(GlanceModifier.height(1.dp))
+            Spacer(GlanceModifier.height(2.dp))
             for (row in 0 until 6) {
                 Row(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
                     for (col in 0 until 7) {
@@ -122,11 +140,17 @@ class MonthWidget : GlanceAppWidget() {
     private fun entriesFor(tasks: List<Task>, d: LocalDate): List<CellEntry> {
         return tasks
             .filter { it.appliesOn(d) }
-            // Hide weekly_goal tasks the user has opted out of the upcoming
-            // panel — matches the web MonthView's filter.
             .filter { !(it.task_type == "weekly_goal" && !it.show_in_upcoming) }
             .sortedWith(compareBy({ it.start_time ?: "99:99" }, { it.title }))
-            .map { CellEntry(it.start_time, it.displayTitle(d)) }
+            .map {
+                val kind = when {
+                    it.task_type == "birthday" -> ChipKind.BIRTHDAY
+                    it.task_type == "weekly_goal" -> ChipKind.GOAL
+                    else -> ChipKind.TASK
+                }
+                val done = it.task_type != "weekly_goal" && it.isCompletedOn(d)
+                CellEntry(it.start_time, it.displayTitle(d), kind, done)
+            }
     }
 
     @Composable
@@ -138,14 +162,18 @@ class MonthWidget : GlanceAppWidget() {
         modifier: GlanceModifier,
     ) {
         val numColor = when {
-            isToday -> Color(0xFFFFC080)
+            isToday -> Color(0xFFFFFFFF)
             !inMonth -> Color(0xFF444444)
-            date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY -> Color(0xFFB0A090)
             else -> Color(0xFFE5E5E5)
         }
-        // Keep view count low: a Column with at most 3 Text children. Glance
-        // turns each composable into a RemoteView and the host has a hard cap.
-        Column(modifier = modifier.padding(1.dp)) {
+        val cellBg = if (isToday) Color(0x334CAF50) else Color(0x00000000)
+        Column(
+            modifier = modifier
+                .padding(1.dp)
+                .cornerRadius(4.dp)
+                .background(cellBg)
+                .padding(horizontal = 2.dp, vertical = 2.dp),
+        ) {
             Text(
                 date.dayOfMonth.toString(),
                 style = TextStyle(
@@ -155,31 +183,52 @@ class MonthWidget : GlanceAppWidget() {
                 ),
             )
             if (inMonth) {
-                val first = entries.getOrNull(0)
-                if (first != null) {
+                val take = entries.take(2)
+                take.forEach { e -> ChipRow(e) }
+                if (entries.size > 2) {
                     Text(
-                        first.title,
+                        "+${entries.size - 2}",
                         style = TextStyle(
-                            color = ColorProvider(Color(0xFFE0CFB4)),
-                            fontSize = 8.sp,
-                        ),
-                        maxLines = 1,
-                    )
-                }
-                if (entries.size >= 2) {
-                    val label = if (entries.size == 2) entries[1].title else "+${entries.size - 1}"
-                    Text(
-                        label,
-                        style = TextStyle(
-                            color = ColorProvider(
-                                if (entries.size == 2) Color(0xFFE0CFB4) else Color(0xFF888888),
-                            ),
+                            color = ColorProvider(Color(0xFF888888)),
                             fontSize = 8.sp,
                         ),
                         maxLines = 1,
                     )
                 }
             }
+        }
+    }
+
+    @Composable
+    private fun ChipRow(e: CellEntry) {
+        val bg = when (e.kind) {
+            ChipKind.BIRTHDAY -> Color(0x55C97A8A)
+            ChipKind.GOAL -> Color(0x559C7546)
+            ChipKind.TASK -> Color(0x559C7546)
+        }
+        val label = buildString {
+            if (e.kind == ChipKind.BIRTHDAY) append("🎂 ")
+            if (e.time != null) append("${e.time} ")
+            append(e.title)
+        }
+        Box(
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .padding(top = 1.dp)
+                .cornerRadius(2.dp)
+                .background(bg)
+                .padding(horizontal = 2.dp, vertical = 1.dp),
+        ) {
+            Text(
+                label,
+                style = TextStyle(
+                    color = ColorProvider(
+                        if (e.done) Color(0xFF888888) else Color(0xFFE5E5E5),
+                    ),
+                    fontSize = 8.sp,
+                ),
+                maxLines = 1,
+            )
         }
     }
 }
