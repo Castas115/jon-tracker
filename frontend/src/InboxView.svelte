@@ -28,11 +28,45 @@
     };
   });
 
-  let selectedId = $state<number | null>(null);
-  let draft = $state('');
+  const SELECTED_KEY = 'inbox-selected-id';
+  const draftKey = (id: number | null) => `inbox-draft-${id ?? 'none'}`;
+
+  function loadSelected(): number | null {
+    if (typeof localStorage === 'undefined') return null;
+    const raw = localStorage.getItem(SELECTED_KEY);
+    if (!raw) return null;
+    const n = parseInt(raw, 10);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  let selectedId = $state<number | null>(loadSelected());
+  let draft = $state(
+    typeof localStorage !== 'undefined' ? localStorage.getItem(draftKey(selectedId)) ?? '' : ''
+  );
   let composeOpen = $state(false);
   let newTranscript = $state('');
   let newKind = $state<IdeaKind>('unknown');
+
+  // Persist selection + per-thread drafts so a refresh keeps the user
+  // exactly where they were.
+  $effect(() => {
+    if (typeof localStorage === 'undefined') return;
+    if (selectedId === null) localStorage.removeItem(SELECTED_KEY);
+    else localStorage.setItem(SELECTED_KEY, String(selectedId));
+  });
+  $effect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(draftKey(selectedId), draft);
+  });
+
+  // When switching threads, swap the draft buffer for that thread's stored draft.
+  let lastSelected = selectedId;
+  $effect(() => {
+    if (selectedId === lastSelected) return;
+    lastSelected = selectedId;
+    if (typeof localStorage === 'undefined') return;
+    draft = localStorage.getItem(draftKey(selectedId)) ?? '';
+  });
 
   const selected = $derived(ideas.find((i) => i.id === selectedId) ?? null);
 
@@ -53,6 +87,14 @@
     draft = '';
     const updated = await api.postIdeaMessage(selected.id, { role: 'user', text });
     onChange(ideas.map((i) => (i.id === updated.id ? updated : i)));
+  }
+
+  function handleReplyKey(e: KeyboardEvent) {
+    // Enter sends; Shift+Enter inserts a newline (chat convention).
+    if (e.key !== 'Enter') return;
+    if (e.shiftKey) return;
+    e.preventDefault();
+    send();
   }
 
   async function setKind(kind: IdeaKind) {
@@ -157,7 +199,12 @@
           send();
         }}
       >
-        <textarea bind:value={draft} placeholder="Reply…" rows="2"></textarea>
+        <textarea
+          bind:value={draft}
+          onkeydown={handleReplyKey}
+          placeholder="Reply… (Enter to send, Shift+Enter for newline)"
+          rows="2"
+        ></textarea>
         <button class="primary" type="submit" disabled={!draft.trim()}>Send</button>
       </form>
     {:else}
