@@ -23,6 +23,7 @@ import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
@@ -110,7 +111,7 @@ class MonthWidget : GlanceAppWidget() {
                             inMonth = d.month == ym.month,
                             isToday = d == today,
                             entries = entriesFor(tasks, d),
-                            modifier = GlanceModifier.defaultWeight().fillMaxSize(),
+                            modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
                         )
                     }
                 }
