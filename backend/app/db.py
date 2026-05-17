@@ -73,6 +73,18 @@ def ensure_schema(eng: Engine) -> None:
             conn.execute(
                 text("ALTER TABLE tasks ADD COLUMN show_in_upcoming BOOLEAN NOT NULL DEFAULT 1")
             )
+        if "notify_enabled" not in existing:
+            conn.execute(
+                text("ALTER TABLE tasks ADD COLUMN notify_enabled BOOLEAN NOT NULL DEFAULT 0")
+            )
+        if "notify_minutes_before" not in existing:
+            conn.execute(
+                text(
+                    "ALTER TABLE tasks ADD COLUMN notify_minutes_before INTEGER NOT NULL DEFAULT 0"
+                )
+            )
+        if "notify_at" not in existing:
+            conn.execute(text("ALTER TABLE tasks ADD COLUMN notify_at VARCHAR(5)"))
 
         # Rename legacy task_type='fixed' to 'single' (terminology change).
         conn.execute(text("UPDATE tasks SET task_type = 'single' WHERE task_type = 'fixed'"))

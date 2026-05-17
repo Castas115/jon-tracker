@@ -90,6 +90,9 @@ class TaskCreate(BaseModel):
     target_per_week: int | None = Field(default=None, ge=1, le=99)
     target_segments: list[TargetSegment] | None = None
     show_in_upcoming: bool = True
+    notify_enabled: bool = False
+    notify_minutes_before: int = Field(default=0, ge=0, le=1440)
+    notify_at: TimeStr | None = None
 
     @model_validator(mode="after")
     def _check(self):
@@ -107,6 +110,9 @@ class TaskUpdate(BaseModel):
     target_per_week: int | None = Field(default=None, ge=1, le=99)
     target_segments: list[TargetSegment] | None = None
     show_in_upcoming: bool | None = None
+    notify_enabled: bool | None = None
+    notify_minutes_before: int | None = Field(default=None, ge=0, le=1440)
+    notify_at: TimeStr | None = None
 
 
 class TaskRead(BaseModel):
@@ -121,6 +127,9 @@ class TaskRead(BaseModel):
     target_per_week: int | None
     target_segments: list[TargetSegment] | None
     show_in_upcoming: bool
+    notify_enabled: bool
+    notify_minutes_before: int
+    notify_at: str | None
     created_at: datetime
     completed_dates: list[date]
 

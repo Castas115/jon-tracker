@@ -29,6 +29,17 @@ class Task(Base):
     show_in_upcoming: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False, server_default="1"
     )
+    # Notifications. Master switch + how to schedule the alarm:
+    #   - if start_time set: fire at (start_time - notify_minutes_before).
+    #   - else if notify_at set: fire at notify_at on the matching day.
+    #   - else: nothing fires.
+    notify_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default="0"
+    )
+    notify_minutes_before: Mapped[int] = mapped_column(
+        Integer, default=0, nullable=False, server_default="0"
+    )
+    notify_at: Mapped[str | None] = mapped_column(String(5), nullable=True)  # "HH:MM"
     # Weekly-goal tasks: how many completions per ISO week count as the goal.
     target_per_week: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # Weekly-goal tasks with weekday-specific targets. List of

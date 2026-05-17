@@ -22,6 +22,9 @@ def _to_read(task: Task) -> TaskRead:
         target_per_week=task.target_per_week,
         target_segments=task.target_segments,  # type: ignore[arg-type]
         show_in_upcoming=task.show_in_upcoming,
+        notify_enabled=task.notify_enabled,
+        notify_minutes_before=task.notify_minutes_before,
+        notify_at=task.notify_at,
         created_at=task.created_at,
         completed_dates=sorted(c.completed_on for c in task.completions),
     )
@@ -48,6 +51,9 @@ def create_task(payload: TaskCreate, db: Session = Depends(get_db)) -> TaskRead:
             [s.model_dump() for s in payload.target_segments] if payload.target_segments else None
         ),
         show_in_upcoming=payload.show_in_upcoming,
+        notify_enabled=payload.notify_enabled,
+        notify_minutes_before=payload.notify_minutes_before,
+        notify_at=payload.notify_at,
     )
     db.add(task)
     db.commit()
