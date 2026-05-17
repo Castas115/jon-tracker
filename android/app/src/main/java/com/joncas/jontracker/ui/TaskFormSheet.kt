@@ -88,6 +88,10 @@ fun TaskFormSheet(
     var endTime by remember { mutableStateOf(existing?.end_time) }
     var isTodo by remember { mutableStateOf(existing?.is_todo ?: true) }
     var showInUpcoming by remember { mutableStateOf(existing?.show_in_upcoming ?: true) }
+    var notifyEnabled by remember { mutableStateOf(existing?.notify_enabled ?: false) }
+    var notifyMinutesBefore by remember { mutableStateOf(existing?.notify_minutes_before ?: 0) }
+    var notifyAt by remember { mutableStateOf(existing?.notify_at) }
+    var showNotifyAtPicker by remember { mutableStateOf(false) }
 
     // Weekly-goal segments. Initial state mirrors existing task if it has
     // segments; falls back to a single segment covering all 7 days with the
@@ -254,6 +258,41 @@ fun TaskFormSheet(
                 Switch(checked = showInUpcoming, onCheckedChange = { showInUpcoming = it })
             }
 
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Notify", modifier = Modifier.weight(1f))
+                Switch(checked = notifyEnabled, onCheckedChange = { notifyEnabled = it })
+            }
+            if (notifyEnabled) {
+                if (startTime != null) {
+                    Text("Notify time", style = MaterialTheme.typography.labelMedium)
+                    val choices = listOf(0, 5, 10, 15, 30, 60)
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        choices.forEach { m ->
+                            FilterChip(
+                                selected = notifyMinutesBefore == m,
+                                onClick = { notifyMinutesBefore = m },
+                                label = { Text(if (m == 0) "On time" else "-${m}m") },
+                            )
+                        }
+                    }
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Notify at: ${notifyAt ?: "—"}", modifier = Modifier.weight(1f))
+                        TextButton(onClick = { showNotifyAtPicker = true }) { Text("Pick") }
+                        if (notifyAt != null) {
+                            TextButton(onClick = { notifyAt = null }) { Text("Clear") }
+                        }
+                    }
+                    if (notifyAt == null) {
+                        Text(
+                            "No time → no alarm will fire.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.width(0.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -288,6 +327,9 @@ fun TaskFormSheet(
                             target_per_week = flatSum,
                             target_segments = finalSegments,
                             show_in_upcoming = showInUpcoming,
+                            notify_enabled = notifyEnabled,
+                            notify_minutes_before = notifyMinutesBefore,
+                            notify_at = notifyAt,
                         )
                         onSubmit(payload)
                     },
@@ -329,6 +371,19 @@ fun TaskFormSheet(
             onConfirm = { h, m ->
                 startTime = "%02d:%02d".format(h, m)
                 showStartTime = false
+            },
+        )
+    }
+
+    if (showNotifyAtPicker) {
+        val (hh, mm) = (notifyAt ?: "21:00").split(":").map { it.toInt() }
+        TimePickerDialog(
+            initialHour = hh,
+            initialMinute = mm,
+            onDismiss = { showNotifyAtPicker = false },
+            onConfirm = { h, m ->
+                notifyAt = "%02d:%02d".format(h, m)
+                showNotifyAtPicker = false
             },
         )
     }

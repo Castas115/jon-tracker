@@ -21,6 +21,9 @@ data class Task(
     val target_per_week: Int? = null,
     val target_segments: List<TargetSegment>? = null,
     val show_in_upcoming: Boolean = true,
+    val notify_enabled: Boolean = false,
+    val notify_minutes_before: Int = 0,
+    val notify_at: String? = null,
     val created_at: String,
     val completed_dates: List<String> = emptyList()
 )
@@ -36,7 +39,10 @@ data class TaskPayload(
     val is_todo: Boolean? = null,
     val target_per_week: Int? = null,
     val target_segments: List<TargetSegment>? = null,
-    val show_in_upcoming: Boolean? = null
+    val show_in_upcoming: Boolean? = null,
+    val notify_enabled: Boolean? = null,
+    val notify_minutes_before: Int? = null,
+    val notify_at: String? = null
 )
 
 @Serializable
