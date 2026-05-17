@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
@@ -86,9 +87,6 @@ fun AppScaffold(
             TopAppBar(
                 title = { Text(TABS.firstOrNull { it.route == currentRoute }?.label ?: "Tracker") },
                 actions = {
-                    IconButton(onClick = { captureOpen = true }) {
-                        Icon(Icons.Filled.Mic, contentDescription = "Capture idea")
-                    }
                     IconButton(onClick = onCreate) {
                         Icon(Icons.Filled.Add, contentDescription = "New task")
                     }
@@ -100,6 +98,11 @@ fun AppScaffold(
                     }
                 },
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { captureOpen = true }) {
+                Icon(Icons.Filled.Mic, contentDescription = "Capture idea")
+            }
         },
         bottomBar = {
             NavigationBar {

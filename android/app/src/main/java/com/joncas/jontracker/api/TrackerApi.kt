@@ -116,12 +116,19 @@ object TrackerApi {
             setBody(
                 MultiPartFormDataContent(
                     formData {
+                        // Empty `key` skips Ktor's auto Content-Disposition so we
+                        // can emit a single, well-formed header (otherwise we get
+                        // two Content-Disposition headers and some servers/proxies
+                        // mangle the response).
                         append(
-                            key = "audio",
+                            key = "",
                             value = audio,
                             headers = Headers.build {
+                                append(
+                                    HttpHeaders.ContentDisposition,
+                                    "form-data; name=\"audio\"; filename=\"$filename\"",
+                                )
                                 append(HttpHeaders.ContentType, mimeType)
-                                append(HttpHeaders.ContentDisposition, "filename=\"$filename\"")
                             },
                         )
                     }
