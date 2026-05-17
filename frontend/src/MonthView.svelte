@@ -169,8 +169,10 @@
         class:all-done={total > 0 && doneCount === total}
         type="button"
         onclick={() => {
-          selectedYMD = k;
-          onCreate(k);
+          // First click on a day just selects it; tapping the already-selected
+          // day opens the create-task popup with the date prefilled.
+          if (selectedYMD === k) onCreate(k);
+          else selectedYMD = k;
         }}
         aria-label={`${d.getDate()} ${MONTH_LABELS[d.getMonth()]} - ${doneCount}/${total} tasks, ${dayEvents.length} events`}
       >

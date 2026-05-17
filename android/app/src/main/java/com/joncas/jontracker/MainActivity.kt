@@ -19,12 +19,18 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
 import com.joncas.jontracker.api.Task
+import com.joncas.jontracker.data.NavRepo
 import com.joncas.jontracker.data.Prefs
 import com.joncas.jontracker.data.TaskRepo
+import com.joncas.jontracker.widget.EXTRA_FOCUS_DATE
+import com.joncas.jontracker.widget.EXTRA_VIEW
+import java.time.LocalDate
 import com.joncas.jontracker.notif.AlarmScheduler
 import com.joncas.jontracker.notif.ensureNotificationChannel
 import com.joncas.jontracker.ui.AppScaffold
+import com.joncas.jontracker.ui.LocalCreateOnDate
 import com.joncas.jontracker.ui.LocalEditTask
 import com.joncas.jontracker.ui.TaskFormSheet
 import com.joncas.jontracker.ui.theme.JonTrackerTheme
@@ -36,8 +42,24 @@ import androidx.glance.appwidget.updateAll
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        consumeNavExtras(intent)
+    }
+
+    private fun consumeNavExtras(intent: Intent?) {
+        val date = intent?.getStringExtra(EXTRA_FOCUS_DATE)
+            ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        val view = intent?.getStringExtra(EXTRA_VIEW)
+        if (date != null || view != null) {
+            NavRepo.request(date, view)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        consumeNavExtras(intent)
         setContent {
             val context = LocalContext.current
             val scope = rememberCoroutineScope()
@@ -70,10 +92,14 @@ class MainActivity : ComponentActivity() {
             }
 
             var creating by remember { mutableStateOf(false) }
+            var creatingOnDate by remember { mutableStateOf<java.time.LocalDate?>(null) }
             var editing by remember { mutableStateOf<Task?>(null) }
 
             JonTrackerTheme(darkTheme = isDark) {
-                CompositionLocalProvider(LocalEditTask provides { task -> editing = task }) {
+                CompositionLocalProvider(
+                    LocalEditTask provides { task -> editing = task },
+                    LocalCreateOnDate provides { d -> creatingOnDate = d },
+                ) {
                     Surface(modifier = Modifier.fillMaxSize()) {
                         AppScaffold(
                             isDark = isDark,
@@ -91,6 +117,18 @@ class MainActivity : ComponentActivity() {
                                     scope.launch {
                                         TaskRepo.create(payload)
                                         creating = false
+                                    }
+                                },
+                            )
+                        }
+                        creatingOnDate?.let { date ->
+                            TaskFormSheet(
+                                initialFixedDate = date,
+                                onDismiss = { creatingOnDate = null },
+                                onSubmit = { payload ->
+                                    scope.launch {
+                                        TaskRepo.create(payload)
+                                        creatingOnDate = null
                                     }
                                 },
                             )

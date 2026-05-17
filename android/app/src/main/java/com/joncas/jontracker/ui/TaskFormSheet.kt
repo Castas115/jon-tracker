@@ -73,6 +73,7 @@ fun TaskFormSheet(
     onDismiss: () -> Unit,
     onSubmit: (TaskPayload) -> Unit,
     onDelete: (() -> Unit)? = null,
+    initialFixedDate: LocalDate? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -82,7 +83,9 @@ fun TaskFormSheet(
     var weekdays by remember { mutableStateOf(existing?.weekdays?.toSet() ?: emptySet()) }
     var fixedDate by remember {
         mutableStateOf(
-            existing?.fixed_date?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: LocalDate.now()
+            existing?.fixed_date?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+                ?: initialFixedDate
+                ?: LocalDate.now()
         )
     }
     var startTime by remember { mutableStateOf(existing?.start_time) }

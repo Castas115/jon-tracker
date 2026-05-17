@@ -8,8 +8,10 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import android.content.Intent
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.clickable
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.ActionCallback
@@ -33,8 +35,10 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextDecoration
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import com.joncas.jontracker.MainActivity
 import com.joncas.jontracker.api.Task
 import com.joncas.jontracker.api.TrackerApi
+import com.joncas.jontracker.data.Prefs
 import com.joncas.jontracker.data.appliesOn
 import com.joncas.jontracker.data.displayTitle
 import kotlinx.coroutines.Dispatchers
@@ -57,7 +61,8 @@ class WeekWidget : GlanceAppWidget() {
         val tasks = runCatching { withContext(Dispatchers.IO) { TrackerApi.listTasks() } }
             .getOrDefault(emptyList())
         val today = LocalDate.now()
-        val monday = today.with(DayOfWeek.MONDAY)
+        val offset = Prefs.weekOffset(context)
+        val monday = today.with(DayOfWeek.MONDAY).plusWeeks(offset.toLong())
         val items = mutableListOf<WeekItem>()
         for (i in 0..6) {
             val d = monday.plusDays(i.toLong())
@@ -71,7 +76,7 @@ class WeekWidget : GlanceAppWidget() {
                     items += WeekItem(d, it, done)
                 }
         }
-        val weekNum = today.get(WeekFields.ISO.weekOfWeekBasedYear())
+        val weekNum = monday.get(WeekFields.ISO.weekOfWeekBasedYear())
         provideContent { GlanceTheme { Content(weekNum, today, items) } }
     }
 
@@ -95,7 +100,14 @@ class WeekWidget : GlanceAppWidget() {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxWidth()) {
                 Text(
+                    "‹",
+                    modifier = GlanceModifier.clickable(actionRunCallback<WeekPrevAction>()),
+                    style = TextStyle(color = ColorProvider(Color(0xFF888888)), fontSize = 16.sp),
+                )
+                Spacer(GlanceModifier.width(6.dp))
+                Text(
                     "Week $weekNumber",
+                    modifier = GlanceModifier.clickable(actionRunCallback<WeekTodayAction>()),
                     style = TextStyle(
                         color = ColorProvider(Color(0xFF9C7546)),
                         fontSize = 14.sp,
@@ -109,9 +121,9 @@ class WeekWidget : GlanceAppWidget() {
                 )
                 Spacer(GlanceModifier.defaultWeight())
                 Text(
-                    "↻",
-                    modifier = GlanceModifier.clickable(actionRunCallback<WeekRefreshAction>()),
-                    style = TextStyle(color = ColorProvider(Color(0xFF888888)), fontSize = 14.sp),
+                    "›",
+                    modifier = GlanceModifier.clickable(actionRunCallback<WeekNextAction>()),
+                    style = TextStyle(color = ColorProvider(Color(0xFF888888)), fontSize = 16.sp),
                 )
             }
             Spacer(GlanceModifier.height(6.dp))
@@ -137,11 +149,22 @@ class WeekWidget : GlanceAppWidget() {
 
     @Composable
     private fun WeekRow(item: WeekItem, isToday: Boolean) {
+        val context = androidx.glance.LocalContext.current
         val dayLabel = item.date.format(DAY_LABEL_FMT)
         val time = item.task.start_time
         val title = item.task.displayTitle(item.date)
+        val openAtDay = actionStartActivity(
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra(EXTRA_FOCUS_DATE, item.date.toString())
+                putExtra(EXTRA_VIEW, "day")
+            },
+        )
         Row(
-            modifier = GlanceModifier.fillMaxWidth().padding(vertical = 1.dp),
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .padding(vertical = 1.dp)
+                .clickable(openAtDay),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
@@ -200,6 +223,27 @@ class WeekRefreshAction : ActionCallback {
         glanceId: GlanceId,
         parameters: ActionParameters,
     ) {
+        WeekWidget().updateAll(context)
+    }
+}
+
+class WeekPrevAction : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        Prefs.setWeekOffset(context, Prefs.weekOffset(context) - 1)
+        WeekWidget().updateAll(context)
+    }
+}
+
+class WeekNextAction : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        Prefs.setWeekOffset(context, Prefs.weekOffset(context) + 1)
+        WeekWidget().updateAll(context)
+    }
+}
+
+class WeekTodayAction : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        Prefs.setWeekOffset(context, 0)
         WeekWidget().updateAll(context)
     }
 }

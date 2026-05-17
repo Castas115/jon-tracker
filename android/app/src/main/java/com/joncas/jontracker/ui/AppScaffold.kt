@@ -72,6 +72,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.joncas.jontracker.audio.AudioRecorder
 import com.joncas.jontracker.data.IdeaRepo
+import com.joncas.jontracker.data.NavRepo
 import com.joncas.jontracker.data.Prefs
 import com.joncas.jontracker.data.TaskRepo
 import com.joncas.jontracker.ui.views.BacklogScreen
@@ -130,6 +131,20 @@ fun AppScaffold(
         TaskRepo.refreshCalendar()
         IdeaRepo.refresh()
         if (!hasMic) micLauncher.launch(Manifest.permission.RECORD_AUDIO)
+    }
+
+    // Consume a pending tab switch (set by widget deep-links).
+    val pendingView by NavRepo.pendingView.collectAsState()
+    LaunchedEffect(pendingView) {
+        val target = pendingView ?: return@LaunchedEffect
+        if (TABS.any { it.route == target }) {
+            nav.navigate(target) {
+                popUpTo(nav.graph.startDestinationId) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+        NavRepo.consumeView()
     }
 
     Scaffold(

@@ -72,6 +72,13 @@ fun DayScreen() {
     val tasks by TaskRepo.tasks.collectAsState()
     val events by TaskRepo.events.collectAsState()
     val scope = rememberCoroutineScope()
+    val pendingDate by com.joncas.jontracker.data.NavRepo.pendingDate.collectAsState()
+    LaunchedEffect(pendingDate) {
+        pendingDate?.let {
+            date = it
+            com.joncas.jontracker.data.NavRepo.consumeDate()
+        }
+    }
 
     // Ticks every 60s so the "Now" divider stays accurate.
     var now by remember { mutableStateOf(LocalTime.now()) }

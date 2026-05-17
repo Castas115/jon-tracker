@@ -8,8 +8,11 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import android.content.Intent
 import androidx.glance.action.ActionParameters
+import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.ActionCallback
@@ -32,8 +35,10 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import com.joncas.jontracker.MainActivity
 import com.joncas.jontracker.api.Task
 import com.joncas.jontracker.api.TrackerApi
+import com.joncas.jontracker.data.Prefs
 import com.joncas.jontracker.data.appliesOn
 import com.joncas.jontracker.data.displayTitle
 import com.joncas.jontracker.data.isCompletedOn
@@ -62,16 +67,20 @@ class MonthWidget : GlanceAppWidget() {
         val tasks = runCatching { withContext(Dispatchers.IO) { TrackerApi.listTasks() } }
             .getOrDefault(emptyList())
         val today = LocalDate.now()
-        provideContent { GlanceTheme { Content(today, tasks) } }
+        val offset = Prefs.monthOffset(context)
+        provideContent { GlanceTheme { Content(today, tasks, offset) } }
     }
 
     @Composable
-    private fun Content(today: LocalDate, tasks: List<Task>) {
-        val ym = YearMonth.from(today)
+    private fun Content(today: LocalDate, tasks: List<Task>, offset: Int) {
+        val viewMonth = today.plusMonths(offset.toLong())
+        val ym = YearMonth.from(viewMonth)
         val first = ym.atDay(1)
         val lead = (first.dayOfWeek.value + 6) % 7
         val gridStart = first.minusDays(lead.toLong())
-        val weekNum = today.get(WeekFields.ISO.weekOfWeekBasedYear())
+        // Show the ISO week of the first day of the visible month so the badge
+        // tracks the month being viewed, not always today.
+        val weekNum = first.get(WeekFields.ISO.weekOfWeekBasedYear())
         val title = "${ym.month.getDisplayName(JTextStyle.SHORT, Locale.getDefault()).replaceFirstChar { it.titlecase(Locale.getDefault()) }} ${ym.year} · W$weekNum"
 
         Column(
@@ -81,28 +90,32 @@ class MonthWidget : GlanceAppWidget() {
                 .cornerRadius(12.dp)
                 .padding(6.dp),
         ) {
-            // Header: centered title + refresh on the right.
-            Box(modifier = GlanceModifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Row(
-                    modifier = GlanceModifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Spacer(GlanceModifier.defaultWeight())
-                    Text(
-                        title,
-                        style = TextStyle(
-                            color = ColorProvider(Color(0xFFE5E5E5)),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                    )
-                    Spacer(GlanceModifier.defaultWeight())
-                    Text(
-                        "↻",
-                        modifier = GlanceModifier.clickable(actionRunCallback<MonthRefreshAction>()),
-                        style = TextStyle(color = ColorProvider(Color(0xFF666666)), fontSize = 12.sp),
-                    )
-                }
+            // Header: prev / title / next + today shortcut.
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "‹",
+                    modifier = GlanceModifier.clickable(actionRunCallback<MonthPrevAction>()),
+                    style = TextStyle(color = ColorProvider(Color(0xFF888888)), fontSize = 16.sp),
+                )
+                Spacer(GlanceModifier.defaultWeight())
+                Text(
+                    title,
+                    modifier = GlanceModifier.clickable(actionRunCallback<MonthTodayAction>()),
+                    style = TextStyle(
+                        color = ColorProvider(Color(0xFFE5E5E5)),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
+                Spacer(GlanceModifier.defaultWeight())
+                Text(
+                    "›",
+                    modifier = GlanceModifier.clickable(actionRunCallback<MonthNextAction>()),
+                    style = TextStyle(color = ColorProvider(Color(0xFF888888)), fontSize = 16.sp),
+                )
             }
             Spacer(GlanceModifier.height(4.dp))
             Row(modifier = GlanceModifier.fillMaxWidth()) {
@@ -161,17 +174,26 @@ class MonthWidget : GlanceAppWidget() {
         entries: List<CellEntry>,
         modifier: GlanceModifier,
     ) {
+        val context = androidx.glance.LocalContext.current
         val numColor = when {
             isToday -> Color(0xFFFFFFFF)
             !inMonth -> Color(0xFF444444)
             else -> Color(0xFFE5E5E5)
         }
         val cellBg = if (isToday) Color(0x334CAF50) else Color(0x00000000)
+        val openAtDay = actionStartActivity(
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra(EXTRA_FOCUS_DATE, date.toString())
+                putExtra(EXTRA_VIEW, "day")
+            },
+        )
         Column(
             modifier = modifier
                 .padding(1.dp)
                 .cornerRadius(4.dp)
                 .background(cellBg)
+                .clickable(openAtDay)
                 .padding(horizontal = 2.dp, vertical = 2.dp),
         ) {
             Text(
@@ -242,3 +264,28 @@ class MonthRefreshAction : ActionCallback {
         MonthWidget().updateAll(context)
     }
 }
+
+class MonthPrevAction : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        Prefs.setMonthOffset(context, Prefs.monthOffset(context) - 1)
+        MonthWidget().updateAll(context)
+    }
+}
+
+class MonthNextAction : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        Prefs.setMonthOffset(context, Prefs.monthOffset(context) + 1)
+        MonthWidget().updateAll(context)
+    }
+}
+
+class MonthTodayAction : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        Prefs.setMonthOffset(context, 0)
+        MonthWidget().updateAll(context)
+    }
+}
+
+/** Intent extra names the widgets put on MainActivity launches. */
+const val EXTRA_FOCUS_DATE = "focus_date"
+const val EXTRA_VIEW = "focus_view"

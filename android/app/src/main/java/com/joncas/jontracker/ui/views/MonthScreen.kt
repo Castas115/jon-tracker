@@ -53,6 +53,7 @@ import com.joncas.jontracker.data.appliesOn
 import com.joncas.jontracker.data.displayTitle
 import com.joncas.jontracker.data.gridDates
 import com.joncas.jontracker.data.isCompletedOn
+import com.joncas.jontracker.ui.LocalCreateOnDate
 import com.joncas.jontracker.ui.LocalEditTask
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -72,6 +73,7 @@ fun MonthScreen() {
     val events by TaskRepo.events.collectAsState()
     val scope = rememberCoroutineScope()
     val today = LocalDate.now()
+    val createOnDate = LocalCreateOnDate.current
 
     val grid = remember(month) { month.gridDates() }
 
@@ -131,7 +133,10 @@ fun MonthScreen() {
                         isSelected = isSelected,
                         taskDots = applicable.coerceAtMost(3),
                         eventDots = evCount.coerceAtMost(3),
-                        onClick = { selected = d },
+                        onClick = {
+                            if (selected == d) createOnDate(d)
+                            else selected = d
+                        },
                         modifier = Modifier.weight(1f),
                     )
                 }
