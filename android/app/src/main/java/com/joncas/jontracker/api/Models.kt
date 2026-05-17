@@ -24,6 +24,8 @@ data class Task(
     val notify_enabled: Boolean = false,
     val notify_minutes_before: Int = 0,
     val notify_at: String? = null,
+    val start_date: String? = null,
+    val end_date: String? = null,
     val created_at: String,
     val completed_dates: List<String> = emptyList()
 )
@@ -42,7 +44,9 @@ data class TaskPayload(
     val show_in_upcoming: Boolean? = null,
     val notify_enabled: Boolean? = null,
     val notify_minutes_before: Int? = null,
-    val notify_at: String? = null
+    val notify_at: String? = null,
+    val start_date: String? = null,
+    val end_date: String? = null
 )
 
 @Serializable

@@ -92,6 +92,10 @@ fun TaskFormSheet(
     var notifyMinutesBefore by remember { mutableStateOf(existing?.notify_minutes_before ?: 0) }
     var notifyAt by remember { mutableStateOf(existing?.notify_at) }
     var showNotifyAtPicker by remember { mutableStateOf(false) }
+    var startDate by remember { mutableStateOf(existing?.start_date) }
+    var endDate by remember { mutableStateOf(existing?.end_date) }
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
 
     // Weekly-goal segments. Initial state mirrors existing task if it has
     // segments; falls back to a single segment covering all 7 days with the
@@ -258,6 +262,33 @@ fun TaskFormSheet(
                 Switch(checked = showInUpcoming, onCheckedChange = { showInUpcoming = it })
             }
 
+            if (taskType == "recurring" || taskType == "weekly_goal") {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Active from: ${startDate ?: "—"}", modifier = Modifier.weight(1f))
+                    TextButton(onClick = { showStartDatePicker = true }) { Text("Pick") }
+                    if (startDate != null) {
+                        TextButton(onClick = { startDate = null }) { Text("Clear") }
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Until: ${endDate ?: "—"}", modifier = Modifier.weight(1f))
+                    TextButton(onClick = { showEndDatePicker = true }) { Text("Pick") }
+                    if (endDate != null) {
+                        TextButton(onClick = { endDate = null }) { Text("Clear") }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { endDate = LocalDate.now().format(ISO) }) {
+                        Text("End today")
+                    }
+                }
+                Text(
+                    "Set 'Until' instead of deleting — history and streaks stay intact.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Notify", modifier = Modifier.weight(1f))
                 Switch(checked = notifyEnabled, onCheckedChange = { notifyEnabled = it })
@@ -330,6 +361,8 @@ fun TaskFormSheet(
                             notify_enabled = notifyEnabled,
                             notify_minutes_before = notifyMinutesBefore,
                             notify_at = notifyAt,
+                            start_date = if (taskType == "recurring" || taskType == "weekly_goal") startDate else null,
+                            end_date = if (taskType == "recurring" || taskType == "weekly_goal") endDate else null,
                         )
                         onSubmit(payload)
                     },
@@ -359,6 +392,44 @@ fun TaskFormSheet(
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
             },
+        ) { DatePicker(state = state) }
+    }
+
+    if (showStartDatePicker) {
+        val initial = startDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: LocalDate.now()
+        val state = rememberDatePickerState(
+            initialSelectedDateMillis = initial.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+        )
+        DatePickerDialog(
+            onDismissRequest = { showStartDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.selectedDateMillis?.let { ms ->
+                        startDate = Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDate().format(ISO)
+                    }
+                    showStartDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = { TextButton(onClick = { showStartDatePicker = false }) { Text("Cancel") } },
+        ) { DatePicker(state = state) }
+    }
+
+    if (showEndDatePicker) {
+        val initial = endDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: LocalDate.now()
+        val state = rememberDatePickerState(
+            initialSelectedDateMillis = initial.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+        )
+        DatePickerDialog(
+            onDismissRequest = { showEndDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.selectedDateMillis?.let { ms ->
+                        endDate = Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDate().format(ISO)
+                    }
+                    showEndDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = { TextButton(onClick = { showEndDatePicker = false }) { Text("Cancel") } },
         ) { DatePicker(state = state) }
     }
 

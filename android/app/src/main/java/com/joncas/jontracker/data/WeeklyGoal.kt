@@ -98,22 +98,26 @@ data class StreakInfo(val current: Int, val best: Int)
  * Weeks before [Task.created_at] aren't counted.
  */
 fun Task.streakInfo(today: LocalDate): StreakInfo {
-    val createdMonday = runCatching {
-        LocalDate.parse(created_at.substring(0, 10))
-    }.getOrNull()?.mondayOfWeek() ?: today.mondayOfWeek()
-    val endMonday = today.mondayOfWeek()
+    val startSource = start_date?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        ?: runCatching { LocalDate.parse(created_at.substring(0, 10)) }.getOrNull()
+        ?: today
+    val startMonday = startSource.mondayOfWeek()
+    val endSource = end_date?.let { runCatching { LocalDate.parse(it) }.getOrNull() }?.let {
+        if (it.isBefore(today)) it else today
+    } ?: today
+    val endMonday = endSource.mondayOfWeek()
 
     var cursor = endMonday
     if (!goalStatus(cursor).hit) cursor = cursor.minusWeeks(1)
     var current = 0
-    while (!cursor.isBefore(createdMonday) && goalStatus(cursor).hit) {
+    while (!cursor.isBefore(startMonday) && goalStatus(cursor).hit) {
         current++
         cursor = cursor.minusWeeks(1)
     }
 
     var best = 0
     var run = 0
-    var scan = createdMonday
+    var scan = startMonday
     while (!scan.isAfter(endMonday)) {
         if (goalStatus(scan).hit) {
             run++
