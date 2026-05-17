@@ -1,4 +1,4 @@
-package com.joncas.jontracker.ui
+package com.joncas.jontracker.ui.views
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -15,11 +16,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -33,10 +31,9 @@ import androidx.compose.ui.unit.dp
 import com.joncas.jontracker.api.Task
 import com.joncas.jontracker.data.TaskRepo
 import com.joncas.jontracker.data.goalStatus
+import com.joncas.jontracker.data.mondayOfWeek
 import com.joncas.jontracker.data.segmentLabel
 import com.joncas.jontracker.data.streakInfo
-import com.joncas.jontracker.data.weekdayMonFirst
-import com.joncas.jontracker.data.mondayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -46,11 +43,9 @@ private const val WEEKS = 18
 private val WEEKDAY_SHORT = listOf("M", "T", "W", "T", "F", "S", "S")
 private val ISO = DateTimeFormatter.ISO_LOCAL_DATE
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StreaksSheet(onDismiss: () -> Unit) {
+fun StreaksScreen() {
     val tasks by TaskRepo.tasks.collectAsState()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val today = LocalDate.now()
 
     val goals = tasks
@@ -73,27 +68,18 @@ fun StreaksSheet(onDismiss: () -> Unit) {
                 .thenBy { it.task.title }
         )
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp)) {
+        if (goals.isEmpty()) {
             Text(
-                "Goal streaks",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(bottom = 12.dp),
+                "No weekly goals yet.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (goals.isEmpty()) {
-                Text(
-                    "No weekly goals yet.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(items = goals, key = { it.task.id }) { card ->
-                        StreakCard(card, today)
-                    }
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(items = goals, key = { it.task.id }) { card ->
+                    StreakCard(card, today)
                 }
             }
-            Box(modifier = Modifier.padding(top = 12.dp))
         }
     }
 }
