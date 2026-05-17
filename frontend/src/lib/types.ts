@@ -8,6 +8,7 @@ export type TargetSegment = {
 export type Task = {
   id: number;
   title: string;
+  description: string | null;
   task_type: TaskType;
   weekdays: number[] | null; // recurring: 1+ entries; otherwise null
   fixed_date: string | null; // YYYY-MM-DD; single & birthday

@@ -12,6 +12,7 @@ data class TargetSegment(
 data class Task(
     val id: Int,
     val title: String,
+    val description: String? = null,
     val task_type: String, // "recurring" | "single" | "birthday" | "weekly_goal"
     val weekdays: List<Int>? = null,
     val fixed_date: String? = null,
@@ -33,6 +34,7 @@ data class Task(
 @Serializable
 data class TaskPayload(
     val title: String,
+    val description: String? = null,
     val task_type: String,
     val weekdays: List<Int>? = null,
     val fixed_date: String? = null,

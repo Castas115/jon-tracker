@@ -15,6 +15,7 @@ def _to_read(task: Task) -> TaskRead:
     return TaskRead(
         id=task.id,
         title=task.title,
+        description=task.description,
         task_type=task.task_type,  # type: ignore[arg-type]
         weekdays=task.weekdays,
         fixed_date=task.fixed_date,
@@ -44,6 +45,7 @@ def list_tasks(db: Session = Depends(get_db)) -> list[TaskRead]:
 def create_task(payload: TaskCreate, db: Session = Depends(get_db)) -> TaskRead:
     task = Task(
         title=payload.title,
+        description=payload.description,
         task_type=payload.task_type,
         weekdays=payload.weekdays,
         fixed_date=payload.fixed_date,

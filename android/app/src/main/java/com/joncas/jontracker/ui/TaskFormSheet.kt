@@ -77,6 +77,7 @@ fun TaskFormSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var title by remember { mutableStateOf(existing?.title ?: "") }
+    var description by remember { mutableStateOf(existing?.description ?: "") }
     var taskType by remember { mutableStateOf(existing?.task_type ?: "single") }
     var weekdays by remember { mutableStateOf(existing?.weekdays?.toSet() ?: emptySet()) }
     var fixedDate by remember {
@@ -160,6 +161,15 @@ fun TaskFormSheet(
                 label = { Text("Title") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+            )
+
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                label = { Text("Description (optional)") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                maxLines = 6,
             )
 
             Text("Type", style = MaterialTheme.typography.labelMedium)
@@ -345,6 +355,7 @@ fun TaskFormSheet(
                         val flatSum = finalSegments?.sumOf { it.target }
                         val payload = TaskPayload(
                             title = title.trim(),
+                            description = description.trim().ifBlank { null },
                             task_type = taskType,
                             weekdays = if (taskType == "recurring") weekdays.sorted() else null,
                             fixed_date = if (taskType == "single" || taskType == "birthday") fixedDate.format(ISO) else null,

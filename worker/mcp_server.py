@@ -105,6 +105,7 @@ def list_tasks() -> list[dict]:
 def create_task(
     title: str,
     task_type: str,
+    description: str | None = None,
     weekdays: list[int] | None = None,
     fixed_date: str | None = None,
     start_time: str | None = None,
@@ -135,6 +136,8 @@ def create_task(
         "notify_enabled": notify_enabled,
         "notify_minutes_before": notify_minutes_before,
     }
+    if description is not None:
+        payload["description"] = description
     if weekdays is not None:
         payload["weekdays"] = weekdays
     if fixed_date is not None:
@@ -160,6 +163,7 @@ def create_task(
 def update_task(
     task_id: int,
     title: str | None = None,
+    description: str | None = None,
     task_type: str | None = None,
     weekdays: list[int] | None = None,
     fixed_date: str | None = None,
@@ -180,6 +184,7 @@ def update_task(
         k: v
         for k, v in {
             "title": title,
+            "description": description,
             "task_type": task_type,
             "weekdays": weekdays,
             "fixed_date": fixed_date,

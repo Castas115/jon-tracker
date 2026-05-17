@@ -4,6 +4,7 @@
 
   export type TaskFormValues = {
     title: string;
+    description: string | null;
     task_type: TaskType;
     weekdays: number[] | null;
     fixed_date: string | null;
@@ -19,6 +20,7 @@
 
   type Initial = Partial<{
     title: string;
+    description: string;
     task_type: TaskType;
     weekdays: number[];
     fixed_date: string;
@@ -46,6 +48,7 @@
   let titleInput: HTMLInputElement | null = $state(null);
 
   let title = $state('');
+  let description = $state('');
   let taskType = $state<TaskType>('recurring');
   let weekdays = $state<number[]>([]);
   let fixedDate = $state('');
@@ -67,6 +70,7 @@
     if (open && !dialog.open) {
       const snap = $state.snapshot(initial);
       title = snap.title ?? '';
+      description = snap.description ?? '';
       taskType = snap.task_type ?? 'recurring';
       weekdays = snap.weekdays ?? [];
       fixedDate = snap.fixed_date ?? '';
@@ -215,6 +219,7 @@
 
     onSubmit({
       title: t,
+      description: description.trim() || null,
       task_type: taskType,
       weekdays: taskType === 'recurring' ? weekdays : null,
       fixed_date: taskType === 'single' ? (fixedDate || null) : taskType === 'birthday' ? fixedDate : null,
@@ -299,6 +304,15 @@
         required
         placeholder="e.g. Gym, Stand-up, Pay rent..."
       />
+    </label>
+
+    <label class="field">
+      <span>Description (optional)</span>
+      <textarea
+        bind:value={description}
+        rows="2"
+        placeholder="Recipe, link, anything extra…"
+      ></textarea>
     </label>
 
     {#if taskType === 'recurring'}
@@ -522,12 +536,22 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
-  .field input {
+  .field input,
+  .field textarea {
     width: 100%;
     text-transform: none;
     letter-spacing: normal;
     font-size: 0.95rem;
     color: var(--fg);
+  }
+  .field textarea {
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.4rem 0.5rem;
+    font: inherit;
+    resize: vertical;
+    min-height: 2.4em;
   }
 
   .days {

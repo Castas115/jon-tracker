@@ -15,6 +15,9 @@ class Task(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(200))
+    # Free-form notes Jon can attach to the task — recipe, link, context.
+    # Optional and unbounded.
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     task_type: Mapped[str] = mapped_column(String(16), default="recurring")
     # Recurring tasks: list of weekdays 0..6 (Mon..Sun); single/birthday: NULL.
     weekdays: Mapped[list[int] | None] = mapped_column(JSON, nullable=True)

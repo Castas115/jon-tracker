@@ -2,6 +2,7 @@ package com.joncas.jontracker.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -143,33 +144,46 @@ fun AppScaffold(
                 recording = recording,
                 transcribing = transcribing,
                 onPressStart = {
+                    Log.d("FAB", "press start, hasMic=$hasMic")
                     if (!hasMic) {
                         micLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         return@HoldToRecordFab
                     }
                     captureError = null
                     runCatching { recorder.start() }
-                        .onSuccess { recording = true }
-                        .onFailure { captureError = it.message ?: it.toString() }
+                        .onSuccess {
+                            recording = true
+                            Log.d("FAB", "recorder started")
+                        }
+                        .onFailure {
+                            captureError = it.message ?: it.toString()
+                            Log.e("FAB", "recorder failed", it)
+                        }
                 },
                 onReleased = { cancelled ->
                     val file = recorder.stop()
+                    Log.d(
+                        "FAB",
+                        "released cancelled=$cancelled file=${file?.absolutePath} size=${file?.length()}",
+                    )
                     recording = false
-                    if (cancelled || file == null || file.length() < 1024) {
+                    if (file == null || file.length() < 1024) {
                         file?.delete()
                         return@HoldToRecordFab
                     }
                     transcribing = true
                     scope.launch {
+                        Log.d("FAB", "upload starting bytes=${file.length()}")
                         val res = uploadAndTranscribe(file)
                         transcribing = false
                         file.delete()
                         res.onSuccess { text ->
+                            Log.d("FAB", "transcribe ok len=${text.length} text=${text.take(60)}")
                             initialTranscript = text
                             captureOpen = true
                         }.onFailure {
+                            Log.e("FAB", "transcribe failed", it)
                             captureError = it.message ?: it.toString()
-                            // Still open the sheet so the user can type instead.
                             initialTranscript = ""
                             captureOpen = true
                         }
@@ -250,10 +264,9 @@ private fun HoldToRecordFab(
         transcribing -> MaterialTheme.colorScheme.onSecondary
         else -> MaterialTheme.colorScheme.onPrimary
     }
-    val sizeDp = if (recording) 72.dp else 56.dp
     Box(
         modifier = Modifier
-            .size(sizeDp)
+            .size(64.dp)
             .clip(CircleShape)
             .background(bg)
             .pointerInput(enabled) {
@@ -277,7 +290,7 @@ private fun HoldToRecordFab(
                 Icons.Filled.Mic,
                 contentDescription = if (recording) "Recording…" else "Hold to record",
                 tint = fg,
-                modifier = Modifier.size(if (recording) 36.dp else 28.dp),
+                modifier = Modifier.size(32.dp),
             )
         }
     }

@@ -42,6 +42,7 @@
 
   type DialogInitial = {
     title?: string;
+    description?: string;
     task_type?: 'recurring' | 'single' | 'birthday' | 'weekly_goal';
     weekdays?: number[];
     fixed_date?: string;
@@ -160,6 +161,7 @@
     editingId = t.id;
     dialogInitial = {
       title: t.title,
+      description: t.description ?? undefined,
       task_type: t.task_type,
       weekdays: t.weekdays ?? undefined,
       fixed_date: t.fixed_date ?? undefined,

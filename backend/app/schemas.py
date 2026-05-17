@@ -85,6 +85,7 @@ def _validate(model):
 
 class TaskCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
+    description: str | None = None
     task_type: TaskType = "recurring"
     weekdays: list[Weekday] | None = None
     fixed_date: date | None = None
@@ -107,6 +108,7 @@ class TaskCreate(BaseModel):
 
 class TaskUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=200)
+    description: str | None = None
     task_type: TaskType | None = None
     weekdays: list[Weekday] | None = None
     fixed_date: date | None = None
@@ -132,6 +134,7 @@ class TaskUpdate(BaseModel):
 class TaskRead(BaseModel):
     id: int
     title: str
+    description: str | None
     task_type: TaskType
     weekdays: list[int] | None
     fixed_date: date | None

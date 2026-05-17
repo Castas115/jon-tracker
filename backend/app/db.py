@@ -94,6 +94,8 @@ def ensure_schema(eng: Engine) -> None:
             )
         if "end_date" not in existing:
             conn.execute(text("ALTER TABLE tasks ADD COLUMN end_date DATE"))
+        if "description" not in existing:
+            conn.execute(text("ALTER TABLE tasks ADD COLUMN description TEXT"))
 
         # Rename legacy task_type='fixed' to 'single' (terminology change).
         conn.execute(text("UPDATE tasks SET task_type = 'single' WHERE task_type = 'fixed'"))
