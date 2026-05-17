@@ -465,9 +465,6 @@
         </button>
       </div>
       <div class="header-actions">
-        {#if calendarConfigured}
-          <span class="cal-badge" title="Google Calendar feed connected">📅</span>
-        {/if}
         <button
           class="primary"
           type="button"
@@ -612,9 +609,4 @@
     font-weight: 600;
   }
 
-  .cal-badge {
-    font-size: 1.1rem;
-    line-height: 1;
-    padding: 0.35rem 0.5rem;
-  }
 </style>
