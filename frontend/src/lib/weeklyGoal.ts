@@ -1,4 +1,4 @@
-import { isoWeekNumber, weekdayMonFirst } from './dates';
+import { isoWeekNumber, mondayOf, weekdayMonFirst, ymd } from './dates';
 import type { Task, TargetSegment } from './types';
 
 export type SegmentProgress = {
@@ -93,6 +93,49 @@ export function weeklyGoalLabel(t: Task, dateYMD: string): string {
   const k = weeklyGoalRank(t, dateYMD);
   const tgt = seg?.target ?? t.target_per_week ?? '?';
   return `${t.title} (${k}/${tgt})`;
+}
+
+export type StreakInfo = {
+  current: number; // weeks running up to (and including) the current week if hit
+  best: number; // longest historical run
+};
+
+/**
+ * Consecutive ISO weeks where the goal hit its target. The current week
+ * counts only if it is already hit; otherwise the streak starts from the
+ * previous week. Weeks before the task was created are not counted.
+ */
+export function streakInfo(t: Task, todayYMD: string): StreakInfo {
+  const today = new Date(todayYMD + 'T00:00:00');
+  const createdMonday = mondayOf(new Date(t.created_at));
+  let cursor = mondayOf(today);
+
+  const hit = (d: Date) => goalStatus(t, ymd(d)).hit;
+
+  let current = 0;
+  if (!hit(cursor)) {
+    cursor.setDate(cursor.getDate() - 7);
+  }
+  while (cursor >= createdMonday && hit(cursor)) {
+    current++;
+    cursor.setDate(cursor.getDate() - 7);
+  }
+
+  // Best streak: scan every week from creation to today.
+  let best = 0;
+  let run = 0;
+  let scan = new Date(createdMonday);
+  const end = mondayOf(today);
+  while (scan <= end) {
+    if (hit(scan)) {
+      run++;
+      if (run > best) best = run;
+    } else {
+      run = 0;
+    }
+    scan.setDate(scan.getDate() + 7);
+  }
+  return { current, best };
 }
 
 export const WEEKDAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;

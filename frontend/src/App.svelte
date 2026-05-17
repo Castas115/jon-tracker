@@ -9,6 +9,7 @@
   import DayView from './DayView.svelte';
   import HelpDialog from './HelpDialog.svelte';
   import MonthView from './MonthView.svelte';
+  import StreaksDialog from './StreaksDialog.svelte';
   import WeekGrid from './WeekGrid.svelte';
   import TaskFormDialog, { type TaskFormValues } from './TaskFormDialog.svelte';
 
@@ -47,6 +48,7 @@
   let dialogInitial = $state<DialogInitial>({});
   let editingId = $state<number | null>(null);
   let helpOpen = $state(false);
+  let streaksOpen = $state(false);
 
   // Cursor for keyboard navigation. Week: weekday 0..6, hour 6..23.
   // Month: a YYYY-MM-DD pointing at any day in the month grid.
@@ -218,7 +220,7 @@
 
   function handleKey(e: KeyboardEvent) {
     if (isInputFocused()) return;
-    if (dialogOpen || helpOpen) return;
+    if (dialogOpen || helpOpen || streaksOpen) return;
 
     // Escape clears any pending count.
     if (e.key === 'Escape') {
@@ -282,6 +284,12 @@
     if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();
       helpOpen = true;
+      setCount('');
+      return;
+    }
+    if (isPlainKey(e, 's')) {
+      e.preventDefault();
+      streaksOpen = true;
       setCount('');
       return;
     }
@@ -404,6 +412,15 @@
         <button
           class="icon"
           type="button"
+          aria-label="Goal streaks"
+          title="Goal streaks (s)"
+          onclick={() => (streaksOpen = true)}
+        >
+          🔥
+        </button>
+        <button
+          class="icon"
+          type="button"
           aria-label={theme === 'dark' ? 'Day mode' : 'Night mode'}
           title={`${theme === 'dark' ? 'Day mode' : 'Night mode'} (t)`}
           onclick={toggleTheme}
@@ -494,6 +511,8 @@
 />
 
 <HelpDialog open={helpOpen} {view} onClose={() => (helpOpen = false)} />
+
+<StreaksDialog open={streaksOpen} {tasks} onClose={() => (streaksOpen = false)} />
 
 <style>
   .header-actions {

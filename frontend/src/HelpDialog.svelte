@@ -29,6 +29,7 @@
     { keys: ['⌥L'], desc: 'Cycle view forward (day → week → month)' },
     { keys: ['b'], desc: 'Backlog view' },
     { keys: ['t'], desc: 'Toggle theme' },
+    { keys: ['s'], desc: 'Goal streaks' },
     { keys: ['g'], desc: 'Jump to today · press again to bounce back to where you were' },
     { keys: ['?'], desc: 'Toggle this help' },
     { keys: ['Esc'], desc: 'Close dialog / clear pending count' }
