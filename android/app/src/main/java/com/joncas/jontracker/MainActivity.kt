@@ -28,6 +28,11 @@ import com.joncas.jontracker.ui.AppScaffold
 import com.joncas.jontracker.ui.LocalEditTask
 import com.joncas.jontracker.ui.TaskFormSheet
 import com.joncas.jontracker.ui.theme.JonTrackerTheme
+import com.joncas.jontracker.widget.MonthWidget
+import com.joncas.jontracker.widget.StreakWidget
+import com.joncas.jontracker.widget.TodayWidget
+import com.joncas.jontracker.widget.WeekWidget
+import androidx.glance.appwidget.updateAll
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -49,6 +54,13 @@ class MainActivity : ComponentActivity() {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
+                // Refresh every Glance widget on the home screen when the app
+                // opens — picks up code changes after an APK install and any
+                // freshly-created tasks without waiting on a manual ↻ tap.
+                runCatching { TodayWidget().updateAll(context) }
+                runCatching { WeekWidget().updateAll(context) }
+                runCatching { MonthWidget().updateAll(context) }
+                runCatching { StreakWidget().updateAll(context) }
             }
 
             // Re-arm alarms whenever the task list changes (initial load + after
